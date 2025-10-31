@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import override
 
 from PySide6.QtCore import Qt, Signal
@@ -31,9 +32,15 @@ class FileDropWidget(QLabel):
     def dropEvent(self, event):
         urls = event.mimeData().urls()
         if urls:
-            file_paths = [url.toLocalFile() for url in urls]
-            self.setText("\n".join(file_paths))
-            self.file_dropped.emit({"id": self.id, "paths": file_paths})
+            # Only take the first file
+            file_path = urls[0].toLocalFile()
+
+            # Check if it's a WAV file
+            if Path(file_path).suffix.lower() == ".wav":
+                self.setText(Path(file_path).name)
+                self.file_dropped.emit({"id": self.id, "paths": [file_path]})
+            else:
+                self.setText("Invalid file! Please drop a .wav file")
 
 
 class MainWindow(QMainWindow):

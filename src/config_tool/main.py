@@ -36,12 +36,14 @@ class ConfigApp:
 
     def handle_files_dropped(self, file_list):
         self.files[file_list["id"]] = file_list["paths"][0]
-        print(self.files)
         self.ui.button.setEnabled(self._files_are_loaded())
 
     def handle_generate_wave(self):
         print("Generating waves")
         self.ui.progress.setValue(0)
+        self.ui.button.setEnabled(False)
+        QApplication.processEvents()  # Force UI update
+
         for i in range(self.Z_LENGTH):
             wavetables = self.gen.generate_multi_audio_page(
                 i,
@@ -52,9 +54,12 @@ class ConfigApp:
                 ],
             )
             self.gen.save_wavetables(wavetables, f"{i + 1}.wav")
-            print((100.0 / self.Z_LENGTH) * (i + 1))
-            self.ui.progress.setValue((100.0 / self.Z_LENGTH) * (i + 1))
+            progress_value = int((100.0 / self.Z_LENGTH) * (i + 1))
+            print(f"Progress: {progress_value}%")
+            self.ui.progress.setValue(progress_value)
+            QApplication.processEvents()  # Force UI update after each step
 
+        self.ui.button.setEnabled(self._files_are_loaded())
         print("Done!")
 
     def run(self):

@@ -1,4 +1,4 @@
-from .baseclass import WavetableGeneratorBaseClass
+from config_tool.lib.baseclass import WavetableGeneratorBaseClass
 from scipy.signal import resample, stft, windows
 import librosa
 import numpy as np
