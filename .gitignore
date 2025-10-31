@@ -8,3 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Output audio files
+output_waves
+
+# OS-specific files
+.DS_Store
