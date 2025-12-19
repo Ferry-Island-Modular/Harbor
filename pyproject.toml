@@ -6,12 +6,20 @@ description = " Configuration app for Ferry Island Modular products."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fourseas-preview",
     "librosa>=0.11.0",
+    "nuitka>=2.8.9",
     "numpy>=2.3.4",
+    "pip>=25.3",
     "pyinstaller>=6.16.0",
     "pyside6>=6.10.0",
     "scipy>=1.16.3",
+    "snakeviz>=2.2.2",
+    "sounddevice>=0.4.6",
 ]
+
+[tool.uv.sources]
+fourseas-preview = { path = "../FourSeas/python", editable = true }
 [project.scripts]
 fim-config-tool = "config_tool.main:app"
 

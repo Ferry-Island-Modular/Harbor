@@ -1,86 +1,123 @@
-from pathlib import Path
-from typing import override
-
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QMainWindow,
-    QPushButton,
-    QVBoxLayout,
+    QButtonGroup,
     QHBoxLayout,
     QLabel,
+    QMainWindow,
+    QVBoxLayout,
     QWidget,
-    QProgressBar,
 )
 
+from config_tool.widgets.button_row import ButtonRow
+from config_tool.widgets.card_with_button import CardButton
+from config_tool.widgets.custom_progress import CustomProgressBar
+from config_tool.widgets.file_drop_widget import FileDropWidget
 
-class FileDropWidget(QLabel):
-    file_dropped = Signal(dict)
-
-    def __init__(self, label_text: str, id: str):
-        super().__init__(label_text)
-        self.id = id
-        self.setAlignment(Qt.AlignCenter)
-        self.setAcceptDrops(True)
-
-    @override
-    def dragEnterEvent(self, event):
-        # Check if the dragged data contains URLs (like file paths)
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    @override
-    def dropEvent(self, event):
-        urls = event.mimeData().urls()
-        if urls:
-            # Only take the first file
-            file_path = urls[0].toLocalFile()
-
-            # Check if it's a WAV file
-            if Path(file_path).suffix.lower() == ".wav":
-                self.setText(Path(file_path).name)
-                self.file_dropped.emit({"id": self.id, "paths": [file_path]})
-            else:
-                self.setText("Invalid file! Please drop a .wav file")
+# from config_tool.widgets.preview_widget import WavetablePreviewWidget
 
 
 class MainWindow(QMainWindow):
-    files_dropped = Signal(dict)
-    button_clicked = Signal()
+    files_dropped: Signal = Signal(dict)
+    file_cleared: Signal = Signal()
+    button_clicked: Signal = Signal()
+    mode_changed = Signal(str)
 
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("Ferry Island Modular Config Tool")
 
-        self.x_drop = FileDropWidget(label_text="Drop X file here", id="x_drop")
-        self.y_drop = FileDropWidget(label_text="Drop Y file here", id="y_drop")
-        self.z_drop = FileDropWidget(label_text="Drop Z file here", id="z_drop")
+        title: QLabel = QLabel("Create your own wavetables for Four Seas")
+        title.setObjectName("titleLabel")
 
-        # Subscribe to each child once, re-emit unified signal
-        for zone in [self.x_drop, self.y_drop, self.z_drop]:
-            zone.file_dropped.connect(self.onZoneDrop)
+        subtitle: QLabel = QLabel(
+            "You can use your own sound files in .wav format or Serum 32-bit .wav files. The tool will take care of the rest."
+        )
+        subtitle.setObjectName("subtitleLabel")
 
-        self.button = QPushButton("Click to generate waves")
-        self.button.clicked.connect(self.onSubmit)
+        title_container = QVBoxLayout()
+        title_container.addWidget(title)
+        title_container.addWidget(subtitle)
 
-        self.progress = QProgressBar()
-        self.progress.setMaximum(100)
-        self.progress.setMinimum(0)
+        title_container.setContentsMargins(0, 0, 0, 32)
+
+        # self.preview_widget = WavetablePreviewWidget()
+
+        self.file_drop = FileDropWidget(
+            label_text="Drop or browse your audio file", id="x_drop"
+        )
+        self.file_drop.file_dropped.connect(self.onZoneDrop)
+        self.file_drop.file_cleared.connect(self.onZoneClear)
+        self.file_drop.hide()
+        # self.y_drop = FileDropWidget(label_text="Drop Y file here", id="y_drop")
+        # self.z_drop = FileDropWidget(label_text="Drop Z file here", id="z_drop")
+
+        # # Subscribe to each child once, re-emit unified signal
+        # for zone in [self.x_drop, self.y_drop, self.z_drop]:
+        #     zone.file_dropped.connect(self.onZoneDrop)
+
+        self.progress = CustomProgressBar()
+        self.progress.hide()
 
         drop_container = QHBoxLayout()
-        drop_container.addWidget(self.x_drop)
-        drop_container.addWidget(self.y_drop)
-        drop_container.addWidget(self.z_drop)
+        drop_container.addWidget(self.file_drop)
+        # drop_container.addWidget(self.y_drop)
+        # drop_container.addWidget(self.z_drop)
+
+        mode_chooser_container = QHBoxLayout()
+        mode_chooser_container.setSpacing(0)  # Remove gaps between CardButton widgets
+        mode_chooser_container.setContentsMargins(0, 0, 0, 0)
+
+        self.single_wav: CardButton = CardButton(
+            "Any *.wav file to wavetable", "single-wav"
+        )
+        self.serum_wav: CardButton = CardButton(
+            "Serum *.wav file to wavetable", "serum-wav"
+        )
+        self.three_wavs: CardButton = CardButton(
+            "Three *.wav files to wavetable", "three-wavs"
+        )
+
+        # Temp, until implemented
+        self.serum_wav.setEnabled(False)
+        self.three_wavs.setEnabled(False)
+
+        self.serum_wav.setButtonText("Coming soon!")
+        self.three_wavs.setButtonText("Coming soon!")
+
+        self.button_group: QButtonGroup = QButtonGroup()
+        self.button_group.setExclusive(True)
+
+        for card in [self.single_wav, self.serum_wav, self.three_wavs]:
+            mode_chooser_container.addWidget(card)
+            self.button_group.addButton(card.button)
+            self.button_group.buttonToggled.connect(card.updateButton)
+            card.button_clicked.connect(self.setMode)
 
         layout = QVBoxLayout()
+        layout.addLayout(title_container)
+        layout.addLayout(mode_chooser_container)
         layout.addLayout(drop_container)
-        layout.addWidget(self.button)
+        layout.setContentsMargins(32, 32, 32, 32)
+
+        self.button_row = ButtonRow()
+        self.button_row.create_wavetable_button.clicked.connect(self.onSubmit)
+        layout.addWidget(self.button_row)
+
         layout.addWidget(self.progress)
+        # layout.addWidget(self.preview_widget)
 
         container = QWidget()
         container.setLayout(layout)
 
-        # Set the central widget of the Window.
+        # toolbar = QToolBar("My main toolbar")
+        # self.addToolBar(toolbar)
+
+        # menu = self.menuBar()
+        # file_menu = menu.addMenu("&File")
+        # edit_menu = menu.addMenu("&Edit")
+        # help_menu = menu.addMenu("&Help")
+
         self.setCentralWidget(container)
 
     def onSubmit(self):
@@ -88,3 +125,30 @@ class MainWindow(QMainWindow):
 
     def onZoneDrop(self, file_path):
         self.files_dropped.emit(file_path)
+
+    def onZoneClear(self):
+        self.file_cleared.emit()
+
+    def setMode(self, mode: str):
+        self.mode_changed.emit(mode)
+
+    # Public API for ConfigApp to control UI state
+    def set_create_button_enabled(self, enabled: bool):
+        """Enable/disable the create wavetable button"""
+        self.button_row.create_wavetable_button.setEnabled(enabled)
+
+    def set_export_button_enabled(self, enabled: bool):
+        """Enable/disable the export button"""
+        self.button_row.export_wavetable_button.setEnabled(enabled)
+
+    def set_progress(self, value: int):
+        """Update progress bar value"""
+        self.progress.setValue(value)
+
+    def show_file_drop(self, visible: bool):
+        """Show/hide file drop widget"""
+        self.file_drop.setVisible(visible)
+
+    def show_progress_bar(self, visible: bool):
+        """Show/hide progress bar widget"""
+        self.progress.setVisible(visible)

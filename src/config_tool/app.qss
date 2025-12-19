@@ -1,10 +1,108 @@
+QApplication {
+  background-color: black;
+}
+
+MainWindow {
+  background-color: #222;
+}
+
 QLabel {
-  color: "red";
-  font-weight: 600;
+  color: white;
+}
+QLabel#titleLabel {
+  font-family: "Pangram";
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 700;
+  color: white;
+}
+QLabel#subtitleLabel {
+  font-family: "Pangram";
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  color: #ddd;
+}
+QLabel#fileDropLabel {
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: white;
+}
+QLabel#buttonRowLabel {
+  font-family: "Pangram";
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  color: #ddd;
 }
 
 FileDropWidget {
-    border: 2px dashed #aaa;
-    padding: 40px;
-    font-size: 16px;
+  border: 2px dashed #555;
+  border-radius: 16px;
+  padding: 32px;
+}
+
+CustomProgressBar {
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  margin: 0;
+  border-radius: 16px;
+  border-width: 1px;
+}
+
+QPushButton {
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: #d6a62c;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+QPushButton#clearButton {
+  border: none;
+  color: white;
+}
+QPushButton:checked {
+  color: white;
+  background-color: #d6a62c;
+  border-color: #d6a62c;
+}
+QPushButton:disabled {
+  color: rgba(221, 221, 221, 0.5);
+  background-color: #555;
+  border-color: #555;
+}
+
+CardButton {
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  margin: 0;
+}
+CardButton#card-button-single-wav {
+  border-radius: 0;
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
+  border-right-width: 1px;
+}
+CardButton#card-button-serum-wav {
+  border-radius: 0;
+  border-left-width: 1px;
+  border-right-width: 1px;
+}
+CardButton#card-button-three-wavs {
+  border-radius: 0;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+  border-left-width: 1px;
+}
+CardButton > QLabel {
+  margin-bottom: 16px;
 }
