@@ -1,0 +1,185 @@
+// ==========================================
+// Variables
+// ==========================================
+
+// Colors
+$color-black: black;
+$color-dark-bg: #222;
+$color-white: white;
+$color-light-gray: #ddd;
+$color-grey: #555;
+$color-grey-translucent: rgba(221, 221, 221, 0.5);
+$color-accent: #d6a62c;
+
+// Typography
+$font-family: "Pangram";
+$font-weight-normal: 400;
+$font-weight-bold: 700;
+
+// Font sizes
+$font-size-xs: 12px;
+$font-size-base: 16px;
+$font-size-lg: 24px;
+
+// Spacing
+$spacing-xs: 8px;
+$spacing-sm: 16px;
+$spacing-lg: 32px;
+
+// Border radius
+$border-radius-sm: 8px;
+$border-radius-base: 16px;
+
+// Borders
+$border-width: 2px;
+$border-style: solid;
+$border-dashed: 2px dashed $color-grey;
+
+// ==========================================
+// Mixins
+// ==========================================
+
+@mixin font-style(
+    $size: $font-size-base,
+    $weight: $font-weight-normal,
+    $color: $color-white
+) {
+    font-family: $font-family;
+    font-size: $size;
+    font-style: normal;
+    font-weight: $weight;
+    color: $color;
+}
+
+@mixin border(
+    $width: $border-width,
+    $style: $border-style,
+    $color: $color-grey
+) {
+    border-width: $width;
+    border-style: $style;
+    border-color: $color;
+}
+
+@mixin button-base {
+    @include font-style($font-size-base, $font-weight-bold, $color-accent);
+    @include border;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-sm;
+}
+
+// ==========================================
+// Base Styles
+// ==========================================
+
+QApplication {
+    background-color: $color-black;
+}
+
+MainWindow {
+    background-color: $color-dark-bg;
+}
+
+QLabel {
+    color: $color-white;
+
+    // Title label variant
+    &#titleLabel {
+        @include font-style($font-size-lg, $font-weight-bold);
+    }
+
+    // Subtitle label variant
+    &#subtitleLabel {
+        @include font-style(
+            $font-size-xs,
+            $font-weight-normal,
+            $color-light-gray
+        );
+    }
+    &#fileDropLabel {
+        @include font-style($font-size-base, $font-weight-bold);
+    }
+
+    &#buttonRowLabel {
+        @include font-style(
+            $font-size-xs,
+            $font-weight-normal,
+            $color-light-gray
+        );
+    }
+}
+
+// ==========================================
+// Components
+// ==========================================
+
+// File drop widget
+FileDropWidget {
+    border: $border-dashed;
+    border-radius: $border-radius-base;
+    padding: $spacing-lg;
+}
+
+CustomProgressBar {
+    @include border;
+    margin: 0;
+
+    border-radius: $border-radius-base;
+    border-width: 1px;
+}
+
+// Push button
+QPushButton {
+    @include button-base;
+
+    &#clearButton {
+        border: none;
+        color: $color-white;
+    }
+
+    &:checked {
+        color: $color-white;
+        background-color: $color-accent;
+        border-color: $color-accent;
+    }
+
+    &:disabled {
+        color: $color-grey-translucent;
+        background-color: $color-grey;
+        border-color: $color-grey;
+    }
+}
+
+// Card button component
+CardButton {
+    @include border;
+    margin: 0;
+
+    // Single WAV variant (left button)
+    &#card-button-single-wav {
+        border-radius: 0;
+        border-top-left-radius: $border-radius-base;
+        border-bottom-left-radius: $border-radius-base;
+        border-right-width: 1px;
+    }
+
+    // Serum WAV variant (middle button)
+    &#card-button-serum-wav {
+        border-radius: 0;
+        border-left-width: 1px;
+        border-right-width: 1px;
+    }
+
+    // Three WAVs variant (right button)
+    &#card-button-three-wavs {
+        border-radius: 0;
+        border-top-right-radius: $border-radius-base;
+        border-bottom-right-radius: $border-radius-base;
+        border-left-width: 1px;
+    }
+
+    // Nested label styling
+    > QLabel {
+        margin-bottom: $spacing-sm;
+    }
+}

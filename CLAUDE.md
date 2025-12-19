@@ -59,6 +59,13 @@ pyinstaller src/config_tool/main.py --name "FIM Config Tool" --windowed
 - Uses 8x8 grid structure (64 waves per page)
 - Implements Kaiser window resampling for quality downsampling
 
+**WavetablePreviewWidget** (`src/config_tool/widgets/preview_widget.py`): Preview/audition widget that:
+- Uses `fourseas-preview` module (exact C++ synthesis code from FourSeas hardware)
+- Loads generated wavetable banks from `output_waves/audio_resynth/`
+- Provides X, Y, Z position sliders (0.00-6.99 range)
+- Plays audio at current position or sweeps through positions
+- Uses sounddevice for real-time audio playback
+
 ### Signal Processing Pipeline
 
 1. Audio files loaded and analyzed via STFT
@@ -90,3 +97,40 @@ Generated files are saved to `output_waves/audio_resynth/` with filenames `1.wav
 - `Z_LENGTH = 8`: Number of output files to generate
 - `oversample_factor = 4`: Internal oversampling ratio for anti-aliasing
 - Output sample rate: 44100 Hz, 16-bit signed integer WAV format
+
+## Wavetable Preview
+
+The project integrates `fourseas-preview`, a Python module that wraps the exact C++ synthesis code used in the FourSeas hardware. This allows users to audition generated wavetables before deploying to hardware.
+
+**Installation:**
+```bash
+# The dependency is already configured in pyproject.toml
+uv sync
+```
+
+**Integration Example:**
+
+See `INTEGRATION_EXAMPLE.md` for detailed integration instructions. Quick example:
+
+```python
+from config_tool.widgets.preview_widget import WavetablePreviewWidget
+
+# Add preview widget to UI
+preview = WavetablePreviewWidget()
+preview.set_bank_path("output_waves/audio_resynth")
+
+# Or auto-load after generation in ConfigApp:
+def handle_generate_wave(self):
+    # ... existing generation code ...
+
+    # After generation completes:
+    output_path = Path(self.OUTPUT_DIR) / "audio_resynth"
+    if hasattr(self.ui, 'preview_widget'):
+        self.ui.preview_widget.set_bank_path(output_path)
+```
+
+**Features:**
+- Real-time wavetable preview at any X, Y, Z position
+- Sweep playback from (0,0,0) to target position
+- Uses exact hardware synthesis algorithm (not an approximation)
+- Automatic bank loading after generation

@@ -6,6 +6,11 @@ dist/
 wheels/
 *.egg-info
 
+# PyInstaller
+*.spec~
+*.app  # Exclude .app bundles in root
+*.dmg  # Exclude DMGs in root
+
 # Virtual environments
 .venv
 

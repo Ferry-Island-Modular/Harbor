@@ -1,0 +1,12 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>app.qss</file>
+        <file>assets/app-icon.png</file>
+        <file>assets/audio-waveform.svg</file>
+        <file>assets/check.svg</file>
+        <file>assets/file.svg</file>
+        <file>assets/menu.svg</file>
+        <file>assets/x-circle.svg</file>
+    </qresource>
+</RCC>
