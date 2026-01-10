@@ -106,3 +106,77 @@ CardButton#card-button-three-wavs {
 CardButton > QLabel {
   margin-bottom: 16px;
 }
+
+AxisMorphSelector {
+  margin-top: 16px;
+}
+AxisMorphSelector > QLabel#axisMorphLabel {
+  font-family: "Pangram";
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  color: #ddd;
+}
+
+QPushButton#morphButtonLeft {
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: #d6a62c;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border-radius: 0;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  border-right-width: 1px;
+}
+
+QPushButton#morphButtonMiddle {
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: #d6a62c;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border-radius: 0;
+  border-left-width: 1px;
+  border-right-width: 1px;
+}
+
+QPushButton#morphButtonRight {
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: #d6a62c;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border-radius: 0;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  border-left-width: 1px;
+}
+
+QPushButton#morphButtonSingle {
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: #d6a62c;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  padding: 8px 16px;
+  border-radius: 8px;
+}

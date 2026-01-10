@@ -28,8 +28,15 @@ print(f"Found fourseas_preview extension: {ext_binary}")
 scipy_datas, scipy_binaries, scipy_hiddenimports = collect_all('scipy')
 librosa_datas, librosa_binaries, librosa_hiddenimports = collect_all('librosa')
 
+# Collect fourseas_preview Python files (not just the .so)
+fourseas_py_files = list(fourseas_path.glob('*.py'))
+print(f"Found {len(fourseas_py_files)} fourseas_preview Python files")
+
 # Collect data files
 datas = []
+# Add fourseas_preview Python wrapper files
+for py_file in fourseas_py_files:
+    datas.append((str(py_file), 'fourseas_preview'))
 datas += scipy_datas
 datas += librosa_datas
 

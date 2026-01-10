@@ -6,7 +6,8 @@ from PySide6.QtCore import QFile, QIODevice, QObject, QRunnable, QThreadPool, Si
 from PySide6.QtWidgets import QApplication
 
 import config_tool.assets_rc  # noqa: F401 - Import registers Qt resources
-from config_tool.service import WavetableServiceBase, WavetableServiceFactory
+from config_tool.lib.serum_converter import MorphType
+from config_tool.service import SerumService, WavetableServiceBase, WavetableServiceFactory
 from config_tool.ui import MainWindow
 from config_tool.widgets.splash_screen import SplashScreen
 
@@ -78,6 +79,8 @@ class ConfigApp:
         self.ui.file_cleared.connect(self.handle_file_cleared)
         self.ui.button_clicked.connect(self.handle_generate_waves)
         self.ui.mode_changed.connect(self.handle_mode_changed)
+        self.ui.y_morph_changed.connect(self.handle_y_morph_changed)
+        self.ui.z_morph_changed.connect(self.handle_z_morph_changed)
 
         # Set initial UI state
         self.ui_signals.set_create_button_enabled.emit(False)
@@ -107,6 +110,21 @@ class ConfigApp:
         if self.mode:
             self.service = WavetableServiceFactory.create(mode)
             self.ui_signals.show_file_drop.emit(True)
+
+            # Sync morph settings if Serum mode
+            if isinstance(self.service, SerumService):
+                self.service.set_y_morph(self.ui.get_y_morph())
+                self.service.set_z_morph(self.ui.get_z_morph())
+
+    def handle_y_morph_changed(self, morph_type: MorphType):
+        """Handle Y axis morph selection change."""
+        if isinstance(self.service, SerumService):
+            self.service.set_y_morph(morph_type)
+
+    def handle_z_morph_changed(self, morph_type: MorphType):
+        """Handle Z axis morph selection change."""
+        if isinstance(self.service, SerumService):
+            self.service.set_z_morph(morph_type)
 
     def on_generate_waves_done(self):
         # Update UI via signals

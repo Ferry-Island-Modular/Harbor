@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from config_tool.lib.audio_resynthesis import AudioResynthWavetableGenerator
+from config_tool.lib.serum_converter import MorphType, SerumWavetableConverter
 
 
 class WavetableServiceBase(ABC):
@@ -34,12 +35,42 @@ class WavetableServiceBase(ABC):
 class SerumService(WavetableServiceBase):
     def __init__(self):
         super().__init__()
+        self.converter = SerumWavetableConverter(
+            num_waves=self.NUM_WAVES,
+            samples=self.NUM_SAMPLES,
+            save_path=self.OUTPUT_DIR,
+            name="serum_converted",
+        )
 
     def are_files_loaded(self):
-        return False
+        return "x_drop" in self.files
+
+    def set_y_morph(self, morph_type: MorphType):
+        """Set the Y axis morph type."""
+        self.converter.set_y_morph(morph_type)
+
+    def set_z_morph(self, morph_type: MorphType):
+        """Set the Z axis morph type."""
+        self.converter.set_z_morph(morph_type)
 
     def generate(self, progress_callback=None):
-        pass
+        from config_tool.lib.serum_converter import MORPH_TYPE_LABELS
+        y_label = MORPH_TYPE_LABELS.get(self.converter.y_morph_type, "Unknown")
+        z_label = MORPH_TYPE_LABELS.get(self.converter.z_morph_type, "Unknown")
+        print("Generating Serum wavetables with spectral morphing")
+        print("  X axis: Source frames")
+        print(f"  Y axis: {y_label}")
+        print(f"  Z axis: {z_label}")
+
+        serum_file = self.files["x_drop"]
+        self.converter.load_wavetable(serum_file)
+
+        for i in range(self.Z_LENGTH):
+            page = self.converter.generate_page(i)
+            self.converter.save_wavetables(page, f"{i + 1}.wav")
+            if progress_callback:
+                progress_value = int((100.0 / self.Z_LENGTH) * (i + 1))
+                progress_callback(progress_value)
 
 
 class SingleResynthService(WavetableServiceBase):

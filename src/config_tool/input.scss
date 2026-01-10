@@ -183,3 +183,44 @@ CardButton {
         margin-bottom: $spacing-sm;
     }
 }
+
+// Axis morph selector
+AxisMorphSelector {
+    margin-top: $spacing-sm;
+
+    > QLabel#axisMorphLabel {
+        @include font-style(
+            $font-size-xs,
+            $font-weight-normal,
+            $color-light-gray
+        );
+    }
+}
+
+// Morph selector buttons
+QPushButton#morphButtonLeft {
+    @include button-base;
+    border-radius: 0;
+    border-top-left-radius: $border-radius-sm;
+    border-bottom-left-radius: $border-radius-sm;
+    border-right-width: 1px;
+}
+
+QPushButton#morphButtonMiddle {
+    @include button-base;
+    border-radius: 0;
+    border-left-width: 1px;
+    border-right-width: 1px;
+}
+
+QPushButton#morphButtonRight {
+    @include button-base;
+    border-radius: 0;
+    border-top-right-radius: $border-radius-sm;
+    border-bottom-right-radius: $border-radius-sm;
+    border-left-width: 1px;
+}
+
+QPushButton#morphButtonSingle {
+    @include button-base;
+}

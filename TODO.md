@@ -1,8 +1,6 @@
 TODO:
 ----
 
-- App icon
-- Splash screen
 - Bootloader anti-virus stuff
 - Icon in drag and drop
 - "Drop file" context aware messaging
