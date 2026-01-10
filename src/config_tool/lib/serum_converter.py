@@ -42,11 +42,14 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
 
     Args:
         num_waves: Number of wavetables per page (fixed at 64 for FourSeas)
-        samples: Number of samples per wavetable (typically 2048)
+        samples: Number of samples per output wavetable (e.g., 2048 for Four Seas, 256 for Piston Honda)
         save_path: Output directory for generated wavetables
         oversample_factor: Oversampling factor for anti-aliasing
         name: Name for the output wavetable set
     """
+
+    # Serum wavetables are always 2048 samples per frame
+    SERUM_FRAME_SIZE = 2048
 
     # Morph parameters (based on Vital's constants)
     PHASE_DISPERSE_CENTER = 24.0  # Center harmonic for phase disperse
@@ -64,6 +67,8 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         name="serum_converted",
     ):
         self.name = name
+        self.output_samples = samples  # Target output size
+
         super().__init__(
             num_waves=num_waves,
             samples=samples,
@@ -502,8 +507,8 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         # Apply Z-axis morph
         morphed_fft = self.apply_morph(morphed_fft_data, self.z_morph_type, z_amount)
 
-        # Convert back to time domain
-        waveform = np.fft.irfft(morphed_fft, n=2048)
+        # Convert back to time domain (at Serum's native 2048 samples)
+        waveform = np.fft.irfft(morphed_fft, n=self.SERUM_FRAME_SIZE)
 
         # Remove DC offset
         waveform = waveform - np.mean(waveform)
@@ -512,6 +517,15 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         max_val = np.max(np.abs(waveform))
         if max_val > 0:
             waveform = waveform / max_val
+
+        # Resample to target output size if different from Serum native
+        if self.output_samples != self.SERUM_FRAME_SIZE:
+            waveform = resample_poly(
+                waveform,
+                self.output_samples,
+                self.SERUM_FRAME_SIZE,
+                window=("kaiser", 5.0)
+            )
 
         # Oversample for anti-aliasing
         waveform_oversampled = resample_poly(

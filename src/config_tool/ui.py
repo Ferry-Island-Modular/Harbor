@@ -1,14 +1,18 @@
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMenu,
     QVBoxLayout,
     QWidget,
 )
 
 from config_tool.lib.serum_converter import MorphType
+from config_tool.settings import AppSettings, settings
 from config_tool.widgets.axis_morph_selector import AxisMorphSelector
 from config_tool.widgets.button_row import ButtonRow
 from config_tool.widgets.card_with_button import CardButton
@@ -24,6 +28,8 @@ class MainWindow(QMainWindow):
     mode_changed = Signal(str)
     y_morph_changed = Signal(MorphType)
     z_morph_changed = Signal(MorphType)
+    output_dir_changed = Signal(str)
+    samples_per_frame_changed = Signal(int)
 
     def __init__(self):
         super().__init__()
@@ -76,10 +82,12 @@ class MainWindow(QMainWindow):
         ]
 
         self.y_morph_selector = AxisMorphSelector("Y", morph_options)
+        self.y_morph_selector.set_selected_morph(settings.y_morph)  # Restore from settings
         self.y_morph_selector.morph_changed.connect(self.onYMorphChanged)
         self.y_morph_selector.hide()
 
         self.z_morph_selector = AxisMorphSelector("Z", morph_options)
+        self.z_morph_selector.set_selected_morph(settings.z_morph)  # Restore from settings
         self.z_morph_selector.morph_changed.connect(self.onZMorphChanged)
         self.z_morph_selector.hide()
 
@@ -131,15 +139,58 @@ class MainWindow(QMainWindow):
         container = QWidget()
         container.setLayout(layout)
 
-        # toolbar = QToolBar("My main toolbar")
-        # self.addToolBar(toolbar)
-
-        # menu = self.menuBar()
-        # file_menu = menu.addMenu("&File")
-        # edit_menu = menu.addMenu("&Edit")
-        # help_menu = menu.addMenu("&Help")
+        # Create menu bar
+        self._create_menu_bar()
 
         self.setCentralWidget(container)
+
+    def _create_menu_bar(self):
+        """Create the application menu bar."""
+        menu_bar = self.menuBar()
+
+        # File menu
+        file_menu: QMenu = menu_bar.addMenu("&File")
+
+        set_output_dir_action = QAction("Set Output Directory...", self)
+        set_output_dir_action.triggered.connect(self._on_set_output_dir)
+        file_menu.addAction(set_output_dir_action)
+
+        # Settings menu
+        settings_menu: QMenu = menu_bar.addMenu("&Settings")
+
+        # Samples per frame submenu
+        samples_menu: QMenu = settings_menu.addMenu("Samples per Frame")
+        self.samples_action_group = QActionGroup(self)
+        self.samples_action_group.setExclusive(True)
+
+        current_samples = settings.samples_per_frame
+
+        for samples, label in AppSettings.SAMPLE_PRESETS.items():
+            action = QAction(label, self)
+            action.setCheckable(True)
+            action.setChecked(samples == current_samples)
+            action.setData(samples)
+            action.triggered.connect(lambda checked, s=samples: self._on_samples_changed(s))
+            self.samples_action_group.addAction(action)
+            samples_menu.addAction(action)
+
+    def _on_set_output_dir(self):
+        """Handle output directory selection."""
+        current_dir = settings.output_dir
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            "Select Output Directory",
+            current_dir,
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+        )
+        if directory:
+            settings.output_dir = directory
+            self.output_dir_changed.emit(directory)
+
+    def _on_samples_changed(self, samples: int):
+        """Handle samples per frame selection."""
+        settings.samples_per_frame = samples
+        self.samples_per_frame_changed.emit(samples)
 
     def onSubmit(self):
         self.button_clicked.emit()

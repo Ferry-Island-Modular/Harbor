@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QApplication
 import config_tool.assets_rc  # noqa: F401 - Import registers Qt resources
 from config_tool.lib.serum_converter import MorphType
 from config_tool.service import SerumService, WavetableServiceBase, WavetableServiceFactory
+from config_tool.settings import settings
 from config_tool.ui import MainWindow
 from config_tool.widgets.splash_screen import SplashScreen
 
@@ -107,6 +108,8 @@ class ConfigApp:
 
     def handle_mode_changed(self, mode):
         self.mode = mode
+        settings.mode = mode  # Persist mode
+
         if self.mode:
             self.service = WavetableServiceFactory.create(mode)
             self.ui_signals.show_file_drop.emit(True)
@@ -118,11 +121,13 @@ class ConfigApp:
 
     def handle_y_morph_changed(self, morph_type: MorphType):
         """Handle Y axis morph selection change."""
+        settings.y_morph = morph_type  # Persist
         if isinstance(self.service, SerumService):
             self.service.set_y_morph(morph_type)
 
     def handle_z_morph_changed(self, morph_type: MorphType):
         """Handle Z axis morph selection change."""
+        settings.z_morph = morph_type  # Persist
         if isinstance(self.service, SerumService):
             self.service.set_z_morph(morph_type)
 
