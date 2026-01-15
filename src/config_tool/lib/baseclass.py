@@ -79,11 +79,9 @@ class WavetableGeneratorBaseClass:
         flattened_wavetables = wavetables_16bit.flatten()
 
         # Write as single WAV file
-        os.makedirs(
-            os.path.join(os.path.abspath(self.save_path), self.name), exist_ok=True
-        )
+        os.makedirs(os.path.abspath(self.save_path), exist_ok=True)
         wavfile.write(
-            os.path.join(os.path.abspath(self.save_path), self.name, filename),
+            os.path.join(os.path.abspath(self.save_path), filename),
             self.sample_rate,
             flattened_wavetables,
         )

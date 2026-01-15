@@ -15,6 +15,7 @@ QLabel#titleLabel {
   font-style: normal;
   font-weight: 700;
   color: white;
+  margin-bottom: 8px;
 }
 QLabel#subtitleLabel {
   font-family: "Pangram";
@@ -37,11 +38,25 @@ QLabel#buttonRowLabel {
   font-weight: 400;
   color: #ddd;
 }
+QLabel#axisMorphLabel {
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: white;
+}
 
 FileDropWidget {
   border: 2px dashed #555;
   border-radius: 16px;
   padding: 32px;
+}
+
+FileDropWrapper {
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  border-top-width: 0;
 }
 
 CustomProgressBar {
@@ -103,6 +118,133 @@ CardButton#card-button-three-wavs {
   border-bottom-right-radius: 16px;
   border-left-width: 1px;
 }
+CardButton#card-button-single-wav[tableOpen=true] {
+  border-bottom-left-radius: 0;
+}
+CardButton#card-button-three-wavs[tableOpen=true] {
+  border-bottom-right-radius: 0;
+}
 CardButton > QLabel {
   margin-bottom: 16px;
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: white;
+}
+
+AxisMorphSelector {
+  margin: 0;
+}
+
+AxisMorphSelectorWrapper {
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  border-top-width: 0;
+  border-radius: 0;
+  padding: 16px;
+}
+
+AxisMorphSelectorWrapper#axis-morph-wrapper-y {
+  border-bottom-left-radius: 16px;
+  border-right-width: 1px;
+}
+
+AxisMorphSelectorWrapper#axis-morph-wrapper-z {
+  border-bottom-right-radius: 16px;
+  border-left-width: 1px;
+}
+
+WavetablePreviewWidget {
+  margin-top: 16px;
+}
+
+#previewTitle {
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+}
+
+#previewControls {
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  border-radius: 16px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+#sliderLabel {
+  font-family: "Pangram";
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  color: #ddd;
+}
+
+#sliderValue {
+  font-family: "Pangram";
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  color: #d6a62c;
+  text-align: right;
+}
+
+#previewSlider::groove:horizontal {
+  border: 1px solid #555;
+  height: 4px;
+  background: #555;
+  border-radius: 2px;
+}
+#previewSlider::handle:horizontal {
+  background: #d6a62c;
+  border: 1px solid #d6a62c;
+  width: 12px;
+  height: 12px;
+  margin: -5px 0;
+  border-radius: 6px;
+}
+#previewSlider::sub-page:horizontal {
+  background: #d6a62c;
+  border-radius: 2px;
+}
+
+#previewButton {
+  font-family: "Pangram";
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  color: #d6a62c;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #555;
+  padding: 8px 16px;
+  border-radius: 8px;
+  min-width: 80px;
+}
+#previewButton:checked {
+  color: white;
+  background-color: #d6a62c;
+  border-color: #d6a62c;
+}
+#previewButton:disabled {
+  color: rgba(221, 221, 221, 0.5);
+  background-color: transparent;
+  border-color: #555;
+}
+#previewButton:hover {
+  border-color: #d6a62c;
+}
+
+#previewStatus {
+  font-family: "Pangram";
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  color: #555;
+  margin-top: 8px;
 }
