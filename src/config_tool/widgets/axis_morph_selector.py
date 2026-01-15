@@ -16,6 +16,36 @@ from PySide6.QtWidgets import (
 from config_tool.lib.serum_converter import MORPH_TYPE_LABELS, MorphType
 
 
+class AxisMorphSelectorWrapper(QWidget):
+    morph_changed: Signal = Signal(MorphType)
+
+    def __init__(self, axis_label: str, morph_options: list[MorphType], parent=None):
+        super().__init__(parent)
+        self.setObjectName(f"axis-morph-wrapper-{axis_label.lower()}")
+
+        self.selector = AxisMorphSelector(axis_label, morph_options, self)
+        self.selector.morph_changed.connect(self.morph_changed)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(0)
+        layout.addWidget(self.selector)
+
+    def get_selected_morph(self) -> MorphType:
+        return self.selector.get_selected_morph()
+
+    def set_selected_morph(self, morph_type: MorphType):
+        self.selector.set_selected_morph(morph_type)
+
+    @override
+    def paintEvent(self, event):
+        """Required for QSS styling to work on custom QWidget subclasses."""
+        opt = QStyleOption()
+        opt.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, p, self)
+
+
 class AxisMorphSelector(QWidget):
     """
     Widget for selecting spectral morph type for an axis (Y or Z).
@@ -50,30 +80,22 @@ class AxisMorphSelector(QWidget):
 
         # Create buttons container
         button_container = QHBoxLayout()
-        button_container.setSpacing(0)
-        button_container.setContentsMargins(0, 0, 0, 0)
 
         for i, morph_type in enumerate(morph_options):
             button = QPushButton(MORPH_TYPE_LABELS[morph_type])
             button.setCheckable(True)
             button.setIconSize(QSize(16, 16))
 
-            # Style based on position (left, middle, right)
-            if len(morph_options) == 1:
-                button.setObjectName("morphButtonSingle")
-            elif i == 0:
-                button.setObjectName("morphButtonLeft")
-            elif i == len(morph_options) - 1:
-                button.setObjectName("morphButtonRight")
-            else:
-                button.setObjectName("morphButtonMiddle")
+            button.setObjectName("morphButton")
 
             self.button_group.addButton(button)
             button_container.addWidget(button)
             self.buttons[morph_type] = button
 
             # Connect to update handler
-            button.toggled.connect(lambda checked, mt=morph_type: self._on_button_toggled(mt, checked))
+            button.toggled.connect(
+                lambda checked, mt=morph_type: self._on_button_toggled(mt, checked)
+            )
 
         # Select first option by default
         if morph_options:
@@ -133,4 +155,4 @@ class AxisMorphSelector(QWidget):
         opt = QStyleOption()
         opt.initFrom(self)
         p = QPainter(self)
-        self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, p, self)

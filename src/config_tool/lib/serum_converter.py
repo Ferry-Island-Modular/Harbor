@@ -21,6 +21,7 @@ from config_tool.lib.baseclass import WavetableGeneratorBaseClass
 
 class MorphType(Enum):
     """Available spectral morph types."""
+
     FORMANT_SCALE = "formant_scale"
     PHASE_DISPERSE = "phase_disperse"
     SMEAR = "smear"
@@ -64,9 +65,7 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         samples=2048,
         save_path="output_waves",
         oversample_factor=4,
-        name="serum_converted",
     ):
-        self.name = name
         self.output_samples = samples  # Target output size
 
         super().__init__(
@@ -198,7 +197,6 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         """
         Pre-compute FFT data (amplitudes and phases) for each source frame.
         """
-        num_harmonics = 1024  # 2048 / 2
         self.frame_fft_data = []
 
         for frame_idx in range(8):
@@ -215,12 +213,14 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
             normalized_real = np.cos(phases)
             normalized_imag = np.sin(phases)
 
-            self.frame_fft_data.append({
-                'amplitudes': amplitudes,
-                'phases': phases,
-                'normalized_real': normalized_real,
-                'normalized_imag': normalized_imag,
-            })
+            self.frame_fft_data.append(
+                {
+                    "amplitudes": amplitudes,
+                    "phases": phases,
+                    "normalized_real": normalized_real,
+                    "normalized_imag": normalized_imag,
+                }
+            )
 
     def formant_scale_morph(self, fft_data, scale):
         """
@@ -238,9 +238,9 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         Returns:
             numpy.ndarray: Modified FFT coefficients (complex)
         """
-        amplitudes = fft_data['amplitudes']
-        normalized_real = fft_data['normalized_real']
-        normalized_imag = fft_data['normalized_imag']
+        amplitudes = fft_data["amplitudes"]
+        normalized_real = fft_data["normalized_real"]
+        normalized_imag = fft_data["normalized_imag"]
         num_harmonics = len(amplitudes)
 
         # Output buffer
@@ -300,7 +300,7 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         Returns:
             numpy.ndarray: Modified FFT coefficients (complex)
         """
-        amplitudes = fft_data['amplitudes']
+        amplitudes = fft_data["amplitudes"]
         num_harmonics = len(amplitudes)
 
         # Output buffer
@@ -308,7 +308,7 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
 
         # Calculate the offset so the effect centers around harmonic 24
         center = self.PHASE_DISPERSE_CENTER
-        offset = -(center - 1.0) ** 2 * amount
+        offset = -((center - 1.0) ** 2) * amount
 
         for i in range(num_harmonics):
             amplitude = amplitudes[i]
@@ -325,8 +325,8 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
             sin_phase = np.sin(phase_shift)
 
             # Original normalized direction from cached data
-            orig_real = fft_data['normalized_real'][i]
-            orig_imag = fft_data['normalized_imag'][i]
+            orig_real = fft_data["normalized_real"][i]
+            orig_imag = fft_data["normalized_imag"][i]
 
             # Rotate phase
             new_real = orig_real * cos_phase - orig_imag * sin_phase
@@ -352,9 +352,9 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         Returns:
             numpy.ndarray: Modified FFT coefficients (complex)
         """
-        amplitudes = fft_data['amplitudes']
-        normalized_real = fft_data['normalized_real']
-        normalized_imag = fft_data['normalized_imag']
+        amplitudes = fft_data["amplitudes"]
+        normalized_real = fft_data["normalized_real"]
+        normalized_imag = fft_data["normalized_imag"]
         num_harmonics = len(amplitudes)
 
         # Output buffer
@@ -362,15 +362,21 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
 
         # First harmonic: amplitude scaled by (1 - amount)
         running_amplitude = amplitudes[0] * (1.0 - amount)
-        new_coeffs[0] = running_amplitude * (normalized_real[0] + 1j * normalized_imag[0])
+        new_coeffs[0] = running_amplitude * (
+            normalized_real[0] + 1j * normalized_imag[0]
+        )
 
         # For remaining harmonics: interpolate between original and running average
         for i in range(1, num_harmonics):
             original_amplitude = amplitudes[i]
             # Interpolate: (1-amount)*original + amount*running
-            running_amplitude = (1.0 - amount) * original_amplitude + amount * running_amplitude
+            running_amplitude = (
+                1.0 - amount
+            ) * original_amplitude + amount * running_amplitude
 
-            new_coeffs[i] = running_amplitude * (normalized_real[i] + 1j * normalized_imag[i])
+            new_coeffs[i] = running_amplitude * (
+                normalized_real[i] + 1j * normalized_imag[i]
+            )
 
             # Scale factor for next iteration (from Vital)
             running_amplitude *= (i + 0.25) / i
@@ -393,9 +399,9 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         Returns:
             numpy.ndarray: Modified FFT coefficients (complex)
         """
-        amplitudes = fft_data['amplitudes']
-        normalized_real = fft_data['normalized_real']
-        normalized_imag = fft_data['normalized_imag']
+        amplitudes = fft_data["amplitudes"]
+        normalized_real = fft_data["normalized_real"]
+        normalized_imag = fft_data["normalized_imag"]
         num_harmonics = len(amplitudes)
 
         # Calculate the stretch multiplier (1.0 to MAX_HARMONIC_STRETCH)
@@ -414,7 +420,7 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
             # Calculate octave-based shift (non-linear)
             octave = np.log2(i) if i > 0 else 0
             power = octave / (self.FREQUENCY_BINS - 1.0)
-            shift = mult ** power
+            shift = mult**power
             shifted_index = max(1.0, shift * (i - 1) + 1)
 
             dest_index = int(shifted_index)
@@ -498,10 +504,10 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
         morphed_amplitudes = np.abs(morphed_fft)
         morphed_phases = np.angle(morphed_fft)
         morphed_fft_data = {
-            'amplitudes': morphed_amplitudes,
-            'phases': morphed_phases,
-            'normalized_real': np.cos(morphed_phases),
-            'normalized_imag': np.sin(morphed_phases),
+            "amplitudes": morphed_amplitudes,
+            "phases": morphed_phases,
+            "normalized_real": np.cos(morphed_phases),
+            "normalized_imag": np.sin(morphed_phases),
         }
 
         # Apply Z-axis morph
@@ -524,7 +530,7 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
                 waveform,
                 self.output_samples,
                 self.SERUM_FRAME_SIZE,
-                window=("kaiser", 5.0)
+                window=("kaiser", 5.0),
             )
 
         # Oversample for anti-aliasing
@@ -587,4 +593,4 @@ class SerumWavetableConverter(WavetableGeneratorBaseClass):
                 progress_value = int((100.0 / 8) * (i + 1))
                 progress_callback(progress_value)
 
-        print(f"Wavetables saved to {self.save_path}/{self.name}/")
+        print(f"Wavetables saved to {self.save_path}/")

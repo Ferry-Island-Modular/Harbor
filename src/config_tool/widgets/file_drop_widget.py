@@ -11,7 +11,33 @@ from PySide6.QtWidgets import (
     QStyleOption,
     QWidget,
 )
-from typing_extensions import Dict
+
+
+class FileDropWrapper(QWidget):
+    file_dropped = Signal(dict)
+    file_cleared = Signal()
+
+    def __init__(self):
+        super().__init__()
+
+        self.drop = FileDropWidget("Drop or browse your audio file", id="x_drop")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(0)
+        layout.addWidget(self.drop)
+
+        # Forward signals
+        self.drop.file_dropped.connect(self.file_dropped)
+        self.drop.file_cleared.connect(self.file_cleared)
+
+    @override
+    def paintEvent(self, event):
+        """Required for QSS styling to work on custom QWidget subclasses."""
+        opt = QStyleOption()
+        opt.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, p, self)
 
 
 class FileDropWidget(QWidget):
@@ -119,4 +145,4 @@ class FileDropWidget(QWidget):
         opt = QStyleOption()
         opt.initFrom(self)
         p = QPainter(self)
-        self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, p, self)

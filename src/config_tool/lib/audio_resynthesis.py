@@ -7,9 +7,8 @@ import scipy.io.wavfile as wavfile
 
 class AudioResynthWavetableGenerator(WavetableGeneratorBaseClass):
     def __init__(
-        self, num_waves, samples, save_path, oversample_factor=4, name="audio_resynth"
+        self, num_waves, samples, save_path, oversample_factor=4
     ):
-        self.name = name
         super().__init__(
             num_waves=num_waves,
             samples=samples,

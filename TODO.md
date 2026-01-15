@@ -1,6 +1,10 @@
 TODO:
 ----
 
+- Invert audio output
+- Volume output
+- Audio device chooser
+
 This and that:
 - Icon in drag and drop
 - Open finder for file

@@ -23,6 +23,8 @@ class AppSettings:
     DEFAULT_MODE = None
     DEFAULT_Y_MORPH = MorphType.FORMANT_SCALE
     DEFAULT_Z_MORPH = MorphType.PHASE_DISPERSE
+    DEFAULT_AUDIO_DEVICE = None  # None = system default
+    DEFAULT_PREVIEW_VOLUME = 100  # 0-100
 
     # Known sample rates with labels
     SAMPLE_PRESETS = {
@@ -45,7 +47,9 @@ class AppSettings:
     # Samples per Frame
     @property
     def samples_per_frame(self) -> int:
-        return int(self._settings.value("samples_per_frame", self.DEFAULT_SAMPLES_PER_FRAME))
+        return int(
+            self._settings.value("samples_per_frame", self.DEFAULT_SAMPLES_PER_FRAME)
+        )
 
     @samples_per_frame.setter
     def samples_per_frame(self, value: int):
@@ -86,6 +90,29 @@ class AppSettings:
     @z_morph.setter
     def z_morph(self, value: MorphType):
         self._settings.setValue("z_morph", value.value)
+
+    # Audio Device
+    @property
+    def audio_device(self) -> int | None:
+        value = self._settings.value("audio_device", self.DEFAULT_AUDIO_DEVICE)
+        if value is None or value == "":
+            return None
+        return int(value)
+
+    @audio_device.setter
+    def audio_device(self, value: int | None):
+        self._settings.setValue("audio_device", value if value is not None else "")
+
+    # Preview Volume
+    @property
+    def preview_volume(self) -> int:
+        return int(
+            self._settings.value("preview_volume", self.DEFAULT_PREVIEW_VOLUME)
+        )
+
+    @preview_volume.setter
+    def preview_volume(self, value: int):
+        self._settings.setValue("preview_volume", value)
 
     def get_output_path(self) -> Path:
         """Get the output directory as a Path object."""

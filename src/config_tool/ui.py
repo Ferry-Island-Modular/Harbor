@@ -13,11 +13,11 @@ from PySide6.QtWidgets import (
 
 from config_tool.lib.serum_converter import MorphType
 from config_tool.settings import AppSettings, settings
-from config_tool.widgets.axis_morph_selector import AxisMorphSelector
+from config_tool.widgets.axis_morph_selector import AxisMorphSelectorWrapper
 from config_tool.widgets.button_row import ButtonRow
 from config_tool.widgets.card_with_button import CardButton
 from config_tool.widgets.custom_progress import CustomProgressBar
-from config_tool.widgets.file_drop_widget import FileDropWidget
+from config_tool.widgets.file_drop_widget import FileDropWrapper
 from config_tool.widgets.preview_widget import WavetablePreviewWidget
 
 
@@ -52,9 +52,8 @@ class MainWindow(QMainWindow):
 
         self.preview_widget = WavetablePreviewWidget()
 
-        self.file_drop = FileDropWidget(
-            label_text="Drop or browse your audio file", id="x_drop"
-        )
+        self.file_drop = FileDropWrapper()
+
         self.file_drop.file_dropped.connect(self.onZoneDrop)
         self.file_drop.file_cleared.connect(self.onZoneClear)
         self.file_drop.hide()
@@ -81,13 +80,17 @@ class MainWindow(QMainWindow):
             MorphType.HARMONIC_STRETCH,
         ]
 
-        self.y_morph_selector = AxisMorphSelector("Y", morph_options)
-        self.y_morph_selector.set_selected_morph(settings.y_morph)  # Restore from settings
+        self.y_morph_selector = AxisMorphSelectorWrapper("Y", morph_options)
+        self.y_morph_selector.set_selected_morph(
+            settings.y_morph
+        )  # Restore from settings
         self.y_morph_selector.morph_changed.connect(self.onYMorphChanged)
         self.y_morph_selector.hide()
 
-        self.z_morph_selector = AxisMorphSelector("Z", morph_options)
-        self.z_morph_selector.set_selected_morph(settings.z_morph)  # Restore from settings
+        self.z_morph_selector = AxisMorphSelectorWrapper("Z", morph_options)
+        self.z_morph_selector.set_selected_morph(
+            settings.z_morph
+        )  # Restore from settings
         self.z_morph_selector.morph_changed.connect(self.onZMorphChanged)
         self.z_morph_selector.hide()
 
@@ -128,6 +131,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(drop_container)
         layout.addLayout(morph_selector_container)
         layout.setContentsMargins(32, 32, 32, 32)
+        layout.setSpacing(0)
 
         self.button_row = ButtonRow()
         self.button_row.create_wavetable_button.clicked.connect(self.onSubmit)
@@ -155,6 +159,11 @@ class MainWindow(QMainWindow):
         set_output_dir_action.triggered.connect(self._on_set_output_dir)
         file_menu.addAction(set_output_dir_action)
 
+        # Audio menu
+        self.audio_menu: QMenu = menu_bar.addMenu("&Audio")
+        self.audio_menu.aboutToShow.connect(self._populate_audio_menu)
+        self._populate_audio_menu()  # Populate initially so menu shows on macOS
+
         # Settings menu
         settings_menu: QMenu = menu_bar.addMenu("&Settings")
 
@@ -170,7 +179,9 @@ class MainWindow(QMainWindow):
             action.setCheckable(True)
             action.setChecked(samples == current_samples)
             action.setData(samples)
-            action.triggered.connect(lambda checked, s=samples: self._on_samples_changed(s))
+            action.triggered.connect(
+                lambda checked, s=samples: self._on_samples_changed(s)
+            )
             self.samples_action_group.addAction(action)
             samples_menu.addAction(action)
 
@@ -181,7 +192,7 @@ class MainWindow(QMainWindow):
             self,
             "Select Output Directory",
             current_dir,
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+            QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks,
         )
         if directory:
             settings.output_dir = directory
@@ -191,6 +202,52 @@ class MainWindow(QMainWindow):
         """Handle samples per frame selection."""
         settings.samples_per_frame = samples
         self.samples_per_frame_changed.emit(samples)
+
+    def _populate_audio_menu(self):
+        """Populate the audio menu with available devices."""
+        self.audio_menu.clear()
+
+        devices = self.preview_widget.get_audio_devices()
+        current_device = settings.audio_device
+
+        if not devices:
+            no_devices_action = QAction("No audio devices available", self)
+            no_devices_action.setEnabled(False)
+            self.audio_menu.addAction(no_devices_action)
+            return
+
+        audio_action_group = QActionGroup(self)
+        audio_action_group.setExclusive(True)
+
+        # System default option
+        default_action = QAction("System Default", self)
+        default_action.setCheckable(True)
+        default_action.setChecked(current_device is None)
+        default_action.triggered.connect(lambda: self._on_audio_device_changed(None))
+        audio_action_group.addAction(default_action)
+        self.audio_menu.addAction(default_action)
+
+        self.audio_menu.addSeparator()
+
+        # Individual devices
+        for device in devices:
+            label = device["name"]
+            if device["is_default"]:
+                label += " (Default)"
+
+            action = QAction(label, self)
+            action.setCheckable(True)
+            action.setChecked(current_device == device["index"])
+            action.triggered.connect(
+                lambda checked, idx=device["index"]: self._on_audio_device_changed(idx)
+            )
+            audio_action_group.addAction(action)
+            self.audio_menu.addAction(action)
+
+    def _on_audio_device_changed(self, device_index: int | None):
+        """Handle audio device selection."""
+        settings.audio_device = device_index
+        self.preview_widget.set_audio_device(device_index)
 
     def onSubmit(self):
         self.button_clicked.emit()
@@ -230,6 +287,11 @@ class MainWindow(QMainWindow):
     def show_file_drop(self, visible: bool):
         """Show/hide file drop widget"""
         self.file_drop.setVisible(visible)
+        for card in [self.single_wav, self.serum_wav, self.three_wavs]:
+            card.setProperty("tableOpen", visible)
+            card.style().unpolish(card)
+            card.style().polish(card)
+            card.update()
 
     def show_progress_bar(self, visible: bool):
         """Show/hide progress bar widget"""

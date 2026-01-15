@@ -66,7 +66,6 @@ class SerumService(WavetableServiceBase):
             num_waves=self.NUM_WAVES,
             samples=self.num_samples,
             save_path=self.output_dir,
-            name="serum_converted",
         )
         converter.set_y_morph(self._y_morph)
         converter.set_z_morph(self._z_morph)

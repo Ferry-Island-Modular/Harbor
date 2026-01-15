@@ -19,6 +19,7 @@ class ButtonRow(QWidget):
         self.label.setObjectName("buttonRowLabel")
 
         layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 12, 0, 12)
         layout.addWidget(self.create_wavetable_button)
         layout.addWidget(self.export_wavetable_button)
         layout.addWidget(self.label)

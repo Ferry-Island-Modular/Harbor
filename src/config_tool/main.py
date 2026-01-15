@@ -1,13 +1,24 @@
 import sys
 import traceback
-from pathlib import Path
 
-from PySide6.QtCore import QFile, QIODevice, QObject, QRunnable, QThreadPool, Signal, Slot
+from PySide6.QtCore import (
+    QFile,
+    QIODevice,
+    QObject,
+    QRunnable,
+    QThreadPool,
+    Signal,
+    Slot,
+)
 from PySide6.QtWidgets import QApplication
 
 import config_tool.assets_rc  # noqa: F401 - Import registers Qt resources
 from config_tool.lib.serum_converter import MorphType
-from config_tool.service import SerumService, WavetableServiceBase, WavetableServiceFactory
+from config_tool.service import (
+    SerumService,
+    WavetableServiceBase,
+    WavetableServiceFactory,
+)
 from config_tool.settings import settings
 from config_tool.ui import MainWindow
 from config_tool.widgets.splash_screen import SplashScreen
@@ -138,6 +149,9 @@ class ConfigApp:
         self.ui_signals.set_create_button_enabled.emit(True)
         self.ui_signals.set_export_button_enabled.emit(True)  # Can now export
 
+        # Load generated wavetables into preview widget
+        self.ui.preview_widget.set_bank_path(settings.output_dir)
+
     def progress_fn(self, progress_value):
         # Update UI via signals
         self.ui_signals.set_progress.emit(progress_value)
@@ -173,8 +187,8 @@ def app():
     splash.show_message("Loading stylesheet...")
     qt_app.processEvents()
     qss_file = QFile(":/app.qss")
-    if qss_file.open(QIODevice.ReadOnly | QIODevice.Text):
-        qt_app.setStyleSheet(str(qss_file.readAll(), encoding='utf-8'))
+    if qss_file.open(QIODevice.OpenModeFlag.ReadOnly | QIODevice.OpenModeFlag.Text):
+        qt_app.setStyleSheet(qss_file.readAll().toStdString())
         qss_file.close()
 
     # Initialize application
