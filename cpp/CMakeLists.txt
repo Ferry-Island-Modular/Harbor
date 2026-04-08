@@ -224,6 +224,7 @@ qt_add_executable(fim-config-tool
     src/engine/wavetable_bank.cpp
     src/engine/wavetable_voice.cpp
     src/engine/realtime_audio_engine.cpp
+    src/ui/preview_window.cpp
 )
 
 target_include_directories(fim-config-tool PRIVATE src)
