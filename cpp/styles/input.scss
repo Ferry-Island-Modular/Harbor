@@ -161,48 +161,43 @@ QPushButton {
     }
 }
 
-// Card button component
-CardButton {
-    @include border;
-    margin: 0;
+// ==========================================
+// CardButton — launcher mode chooser
+// ==========================================
 
-    // Single WAV variant (left button)
-    &#card-button-single-wav {
-        border-radius: 0;
-        border-top-left-radius: $border-radius-base;
-        border-bottom-left-radius: $border-radius-base;
-        border-right-width: 1px;
-    }
+#cardButton {
+    background-color: $color-black;
+    border-radius: $border-radius-base;
+    min-height: 172px;
+    max-height: 172px;
+}
 
-    // Serum WAV variant (middle button)
-    &#card-button-serum-wav {
-        border-radius: 0;
-        border-left-width: 1px;
-        border-right-width: 1px;
-    }
+#cardButtonDescription {
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+}
 
-    // Three WAVs variant (right button)
-    &#card-button-three-wavs {
-        border-radius: 0;
-        border-top-right-radius: $border-radius-base;
-        border-bottom-right-radius: $border-radius-base;
-        border-left-width: 1px;
-    }
+#cardButtonAction {
+    background-color: $color-accent;
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    min-width: 78px;
+}
 
-    // Flatten bottom corners when the drop area is visible
-    &#card-button-single-wav[tableOpen="true"] {
-        border-bottom-left-radius: 0;
-    }
+#cardButtonAction[variant="comingSoon"] {
+    background-color: $color-grey;
+}
 
-    &#card-button-three-wavs[tableOpen="true"] {
-        border-bottom-right-radius: 0;
-    }
-
-    // Nested label styling
-    > QLabel {
-        margin-bottom: $spacing-sm;
-        @include font-style($font-size-base, $font-weight-bold, $color-white);
-    }
+#cardButtonAction:disabled {
+    background-color: $color-grey;
+    color: $color-light-gray;
 }
 
 // Axis morph selector
