@@ -227,7 +227,6 @@ qt_add_executable(fim-config-tool
     src/engine/wavetable_bank.cpp
     src/engine/wavetable_voice.cpp
     src/engine/realtime_audio_engine.cpp
-    src/ui/preview_window.cpp
     src/ui/main_window.cpp
     src/ui/launcher_screen.cpp
     src/ui/any_wav_screen.cpp

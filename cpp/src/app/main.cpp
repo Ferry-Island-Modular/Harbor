@@ -2,7 +2,7 @@
 #include <QFile>
 #include <QTextStream>
 
-#include "ui/preview_window.h"
+#include "ui/main_window.h"
 
 namespace {
 
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
         app.setStyleSheet(qss);
     }
 
-    fim::ui::PreviewWindow window;
+    fim::ui::MainWindow window;
     window.show();
 
     return app.exec();
