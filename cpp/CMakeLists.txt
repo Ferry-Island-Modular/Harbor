@@ -221,6 +221,7 @@ qt_add_executable(fim-config-tool
     src/app/settings.cpp
     src/app/services/stub_bank_writer.cpp
     src/app/services/single_wav_service.cpp
+    src/dsp/window.cpp
     src/engine/engine_smoke.cpp
     src/engine/single_header_impls.cpp
     src/engine/wav_loader.cpp
