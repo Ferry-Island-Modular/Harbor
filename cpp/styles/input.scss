@@ -249,78 +249,35 @@ QPushButton {
 }
 
 // ==========================================
-// Preview Widget
+// PreviewControlsWidget — embedded preview
 // ==========================================
 
-WavetablePreviewWidget {
-    margin-top: $spacing-sm;
+#previewControlsWidget {
+    background-color: $color-black;
+    border-radius: $border-radius-base;
 }
 
 #previewTitle {
-    @include font-style($font-size-base, $font-weight-bold, $color-white);
-    margin-bottom: $spacing-xs;
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
 }
 
-#previewControls {
-    @include border;
-    border-radius: $border-radius-base;
-    background-color: rgba(0, 0, 0, 0.2);
+#previewSliderLabel {
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-normal;
+    font-size: $font-size-xs;
 }
 
-#sliderLabel {
-    @include font-style($font-size-xs, $font-weight-bold, $color-light-gray);
-}
-
-#sliderValue {
-    @include font-style($font-size-xs, $font-weight-normal, $color-accent);
-    text-align: right;
-}
-
-#previewSlider {
-    &::groove:horizontal {
-        border: 1px solid $color-grey;
-        height: 4px;
-        background: $color-grey;
-        border-radius: 2px;
-    }
-
-    &::handle:horizontal {
-        background: $color-accent;
-        border: 1px solid $color-accent;
-        width: 12px;
-        height: 12px;
-        margin: -5px 0;
-        border-radius: 6px;
-    }
-
-    &::sub-page:horizontal {
-        background: $color-accent;
-        border-radius: 2px;
-    }
-}
-
-#previewButton {
-    @include button-base;
-    min-width: 80px;
-
-    &:checked {
-        color: $color-white;
-        background-color: $color-accent;
-        border-color: $color-accent;
-    }
-
-    &:disabled {
-        color: $color-grey-translucent;
-        background-color: transparent;
-        border-color: $color-grey;
-    }
-
-    &:hover {
-        border-color: $color-accent;
-    }
-}
-
-#previewStatus {
-    @include font-style($font-size-xs, $font-weight-normal, $color-grey);
-    margin-top: $spacing-xs;
+#previewPlayButton {
+    background-color: $color-accent;
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
 }
