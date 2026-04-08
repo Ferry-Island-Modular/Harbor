@@ -1,0 +1,119 @@
+name: cpp-ci
+
+on:
+  push:
+    branches: [cpp-qt-rewrite]
+    paths:
+      - 'cpp/**'
+      - '.github/workflows/cpp-ci.yml'
+  pull_request:
+    branches: [cpp-qt-rewrite]
+    paths:
+      - 'cpp/**'
+      - '.github/workflows/cpp-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: clang-format check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Check formatting
+        working-directory: cpp
+        run: |
+          find src tests -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) \
+            -print0 | xargs -0 clang-format --dry-run --Werror
+
+  build:
+    name: Build - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            qt_host: mac
+            qt_arch: clang_64
+          # macos-26 dropped: Qt 6.8 still references the deprecated Apple AGL
+          # framework in its CMake config, and Apple removed AGL in macOS 26.
+          # Revisit when Qt fixes the cmake config OR when macos-latest itself
+          # rotates to macOS 26+.
+          - os: ubuntu-latest
+            qt_host: linux
+            qt_arch: linux_gcc_64
+          - os: windows-latest
+            qt_host: windows
+            qt_arch: win64_msvc2022_64
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Linux system deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            libgl1-mesa-dev \
+            libxkbcommon-dev \
+            libegl1-mesa-dev \
+            libfontconfig1 \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            libpulse-dev \
+            libasound2-dev
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: ${{ matrix.qt_host }}
+          target: desktop
+          arch: ${{ matrix.qt_arch }}
+          cache: true
+
+      - name: Install Node (for dart-sass)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configure (Unix)
+        if: runner.os != 'Windows'
+        working-directory: cpp
+        run: cmake -B build -G Ninja
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        working-directory: cpp
+        run: cmake -B build -A x64
+
+      - name: Build (Unix)
+        if: runner.os != 'Windows'
+        working-directory: cpp
+        run: cmake --build build --parallel
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        working-directory: cpp
+        run: cmake --build build --parallel --config Release
+
+      - name: Test (Unix)
+        if: runner.os != 'Windows'
+        working-directory: cpp
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Test (Windows)
+        if: runner.os == 'Windows'
+        working-directory: cpp
+        run: ctest --test-dir build --output-on-failure -C Release
