@@ -218,6 +218,7 @@ target_include_directories(dr_wav_headers SYSTEM INTERFACE
 # Main executable
 qt_add_executable(fim-config-tool
     src/app/main.cpp
+    src/app/settings.cpp
     src/engine/engine_smoke.cpp
     src/engine/single_header_impls.cpp
     src/engine/wav_loader.cpp
