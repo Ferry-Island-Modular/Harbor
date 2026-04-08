@@ -61,6 +61,15 @@ private:
     // touched by the audio thread; non-atomic.
     const WavetableBank* last_inited_bank_ = nullptr;
 
+    // Smoothed parameter state. Updated per-sample inside RenderBlock by
+    // chasing the atomic targets. Only the audio thread reads/writes these,
+    // so they're non-atomic.
+    float smoothed_x_ = 0.0f;
+    float smoothed_y_ = 0.0f;
+    float smoothed_z_ = 0.0f;
+    float smoothed_frequency_ = 440.0f;
+    static constexpr float kParamSmoothingCoeff = 0.005f;
+
     std::atomic<float> x_{0.0f};
     std::atomic<float> y_{0.0f};
     std::atomic<float> z_{0.0f};

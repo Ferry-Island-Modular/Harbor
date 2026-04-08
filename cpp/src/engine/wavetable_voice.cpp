@@ -60,18 +60,24 @@ void WavetableVoice::RenderBlock(float* out, size_t num_samples) {
         last_inited_bank_ = bank.get();
     }
 
-    const float x = x_.load(std::memory_order_relaxed);
-    const float y = y_.load(std::memory_order_relaxed);
-    const float z = z_.load(std::memory_order_relaxed);
-    const float freq = frequency_.load(std::memory_order_relaxed);
-    const float norm_freq = freq / sample_rate_;
+    // Snapshot the atomic targets once per block; smoothed state chases them
+    // per-sample to prevent zipper noise on fast slider drags.
+    const float target_x = x_.load(std::memory_order_relaxed);
+    const float target_y = y_.load(std::memory_order_relaxed);
+    const float target_z = z_.load(std::memory_order_relaxed);
+    const float target_freq = frequency_.load(std::memory_order_relaxed);
 
     for (size_t i = 0; i < num_samples; ++i) {
+        smoothed_x_ += (target_x - smoothed_x_) * kParamSmoothingCoeff;
+        smoothed_y_ += (target_y - smoothed_y_) * kParamSmoothingCoeff;
+        smoothed_z_ += (target_z - smoothed_z_) * kParamSmoothingCoeff;
+        smoothed_frequency_ += (target_freq - smoothed_frequency_) * kParamSmoothingCoeff;
+
         fourseas::Params::Values values = {};
-        values.frequency = norm_freq;
-        values.x = x;
-        values.y = y;
-        values.z = z;
+        values.frequency = smoothed_frequency_ / sample_rate_;
+        values.x = smoothed_x_;
+        values.y = smoothed_y_;
+        values.z = smoothed_z_;
         values.osc_mod_amount = 0.0f;
 
         fourseas::OscillatorParams params = {
