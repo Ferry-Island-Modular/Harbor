@@ -231,6 +231,7 @@ qt_add_executable(fim-config-tool
     src/ui/widgets/card_button.cpp
     src/ui/widgets/file_drop_widget.cpp
     src/ui/widgets/axis_morph_selector.cpp
+    src/ui/widgets/custom_progress_bar.cpp
 )
 
 target_include_directories(fim-config-tool PRIVATE src)
