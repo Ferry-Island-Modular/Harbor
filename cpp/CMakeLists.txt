@@ -219,6 +219,7 @@ target_include_directories(dr_wav_headers SYSTEM INTERFACE
 qt_add_executable(fim-config-tool
     src/app/main.cpp
     src/engine/engine_smoke.cpp
+    src/engine/single_header_impls.cpp
 )
 
 # Embed the transpiled QSS as a Qt resource. We use qt_add_resources rather
