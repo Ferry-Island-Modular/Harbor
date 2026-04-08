@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
+#include <numbers>
 
 #include "dsp/window.h"
 
@@ -22,7 +23,7 @@ TEST_CASE("HannWindow peak value matches scipy.signal.windows.hann(2048)", "[dsp
     // At index 1023 the value is 0.5 * (1 - cos(2*pi*1023/2047)) ≈ 0.9999988...
     const auto w = fim::dsp::HannWindow(2048);
     const float expected_1023 =
-        0.5f * (1.0f - std::cos(2.0f * static_cast<float>(M_PI) * 1023.0f / 2047.0f));
+        0.5f * (1.0f - std::cos(2.0f * std::numbers::pi_v<float> * 1023.0f / 2047.0f));
     REQUIRE_THAT(w[1023], WithinAbs(expected_1023, 1e-6));
 }
 
