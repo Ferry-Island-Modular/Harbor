@@ -8,6 +8,7 @@ add_executable(fim-tests
     stub_bank_writer_test.cpp
     dsp_window_test.cpp
     dsp_wav_loader_test.cpp
+    dsp_real_fft_test.cpp
     ../src/engine/single_header_impls.cpp
     ../src/engine/wav_loader.cpp
     ../src/engine/wavetable_bank.cpp
@@ -17,6 +18,7 @@ add_executable(fim-tests
     ../src/app/services/stub_bank_writer.cpp
     ../src/dsp/window.cpp
     ../src/dsp/wav_loader.cpp
+    ../src/dsp/real_fft.cpp
 )
 
 target_include_directories(fim-tests PRIVATE
