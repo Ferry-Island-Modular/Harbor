@@ -1,8 +1,8 @@
 #include <QApplication>
 #include <QFile>
-#include <QLabel>
-#include <QMainWindow>
 #include <QTextStream>
+
+#include "ui/preview_window.h"
 
 namespace {
 
@@ -27,14 +27,8 @@ int main(int argc, char** argv) {
         app.setStyleSheet(qss);
     }
 
-    QMainWindow window;
-    window.setWindowTitle("FIM Config Tool");
-    window.resize(1000, 378);
-
-    auto* label = new QLabel("Hello, FourSeas", &window);
-    label->setAlignment(Qt::AlignCenter);
-    window.setCentralWidget(label);
-
+    fim::ui::PreviewWindow window;
     window.show();
+
     return app.exec();
 }
