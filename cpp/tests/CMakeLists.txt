@@ -5,12 +5,14 @@ add_executable(fim-tests
     wavetable_voice_test.cpp
     realtime_audio_engine_test.cpp
     settings_test.cpp
+    stub_bank_writer_test.cpp
     ../src/engine/single_header_impls.cpp
     ../src/engine/wav_loader.cpp
     ../src/engine/wavetable_bank.cpp
     ../src/engine/wavetable_voice.cpp
     ../src/engine/realtime_audio_engine.cpp
     ../src/app/settings.cpp
+    ../src/app/services/stub_bank_writer.cpp
 )
 
 target_include_directories(fim-tests PRIVATE
