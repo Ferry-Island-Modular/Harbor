@@ -2,9 +2,11 @@ add_executable(fim-tests
     smoke_test.cpp
     wav_loader_test.cpp
     wavetable_bank_test.cpp
+    wavetable_voice_test.cpp
     ../src/engine/single_header_impls.cpp
     ../src/engine/wav_loader.cpp
     ../src/engine/wavetable_bank.cpp
+    ../src/engine/wavetable_voice.cpp
 )
 
 target_include_directories(fim-tests PRIVATE
