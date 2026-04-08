@@ -78,6 +78,10 @@ PreviewControlsWidget::PreviewControlsWidget(fim::engine::RealtimeAudioEngine* e
     engine_->SetMidiNote(kMidiNoteDefault);
 }
 
+void PreviewControlsWidget::RefreshPlayButton() {
+    play_button_->setText(engine_->IsPlaying() ? "Stop" : "Play steady tone");
+}
+
 void PreviewControlsWidget::OnPlayStopClicked() {
     if (engine_->IsPlaying()) {
         engine_->Stop();

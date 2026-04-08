@@ -229,6 +229,7 @@ qt_add_executable(fim-config-tool
     src/engine/realtime_audio_engine.cpp
     src/ui/preview_window.cpp
     src/ui/launcher_screen.cpp
+    src/ui/any_wav_screen.cpp
     src/ui/widgets/card_button.cpp
     src/ui/widgets/file_drop_widget.cpp
     src/ui/widgets/axis_morph_selector.cpp

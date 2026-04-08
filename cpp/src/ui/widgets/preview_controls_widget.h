@@ -22,6 +22,11 @@ class PreviewControlsWidget : public QFrame {
 public:
     PreviewControlsWidget(fim::engine::RealtimeAudioEngine* engine, QWidget* parent = nullptr);
 
+    // Re-sync the Play/Stop button label from the engine's current state.
+    // Use after stopping the engine externally (e.g. when navigating away or
+    // starting a new generation) so the button reflects reality.
+    void RefreshPlayButton();
+
 private slots:
     void OnPlayStopClicked();
     void OnXChanged(int value);

@@ -303,3 +303,83 @@ QPushButton {
     font-weight: $font-weight-normal;
     font-size: $font-size-xs;
 }
+
+// ==========================================
+// AnyWavScreen
+// ==========================================
+
+#anyWavScreen {
+    background-color: $color-dark-bg;
+}
+
+#backButton {
+    color: $color-accent;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+#anyWavTitle {
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-lg;
+}
+
+#anyWavInnerCard {
+    background-color: $color-black;
+    border-radius: $border-radius-base;
+}
+
+#anyWavFilename {
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+}
+
+#clearButton {
+    background-color: $color-grey;
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-xs;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+}
+
+#anyWavAxisLabel {
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+}
+
+#anyWavAxisDescriptor {
+    color: $color-light-gray;
+    font-family: $font-family;
+    font-weight: $font-weight-normal;
+    font-size: $font-size-xs;
+}
+
+#generateButton, #exportButton {
+    background-color: $color-accent;
+    color: $color-white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+}
+
+#anyWavDoneMessage {
+    color: $color-accent;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-lg;
+}
