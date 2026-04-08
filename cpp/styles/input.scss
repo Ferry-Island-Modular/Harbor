@@ -119,16 +119,15 @@ QLabel {
 // Components
 // ==========================================
 
-// File drop widget
-FileDropWidget {
-    border: $border-dashed;
-    border-radius: $border-radius-base;
-    padding: $spacing-lg;
-}
+// ==========================================
+// FileDropWidget — dashed-border drop area
+// ==========================================
 
-FileDropWrapper {
-    @include border;
-    border-top-width: 0;
+#fileDropWidget {
+    background-color: transparent;
+    border: 2px dashed $color-grey;
+    border-radius: 8px;
+    min-height: 88px;
 }
 
 CustomProgressBar {
