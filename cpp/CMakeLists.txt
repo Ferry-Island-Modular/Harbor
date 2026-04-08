@@ -220,7 +220,10 @@ qt_add_executable(fim-config-tool
     src/app/main.cpp
     src/engine/engine_smoke.cpp
     src/engine/single_header_impls.cpp
+    src/engine/wav_loader.cpp
 )
+
+target_include_directories(fim-config-tool PRIVATE src)
 
 # Embed the transpiled QSS as a Qt resource. We use qt_add_resources rather
 # than a static .qrc file because the source path is in the build directory

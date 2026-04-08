@@ -1,11 +1,20 @@
 add_executable(fim-tests
     smoke_test.cpp
+    wav_loader_test.cpp
+    ../src/engine/single_header_impls.cpp
+    ../src/engine/wav_loader.cpp
+)
+
+target_include_directories(fim-tests PRIVATE
+    ../src
 )
 
 target_link_libraries(fim-tests PRIVATE
     Catch2::Catch2WithMain
     fourseas_engine
     pffft
+    miniaudio_headers
+    dr_wav_headers
     SampleRate::samplerate
     spdlog::spdlog
 )
