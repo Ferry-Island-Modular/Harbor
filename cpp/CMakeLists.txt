@@ -231,6 +231,7 @@ qt_add_executable(fim-config-tool
     src/dsp/post_effects.cpp
     src/dsp/serum_loader.cpp
     src/dsp/serum_morpher.cpp
+    src/dsp/serum_generator.cpp
     src/dsp/single_wav_generator.cpp
     src/engine/engine_smoke.cpp
     src/engine/single_header_impls.cpp
