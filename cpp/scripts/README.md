@@ -2,7 +2,7 @@
 
 ## `package-macos.sh`
 
-Builds and packages an Apple Silicon `.dmg` of FIM Config Tool for
+Builds and packages an Apple Silicon `.dmg` of Harbor for
 internal team distribution. Bundles Qt frameworks via `macdeployqt` and
 applies an ad-hoc code signature so Gatekeeper can parse the bundle.
 
@@ -16,7 +16,7 @@ developer" message — testers need the workaround below.
 # Build + package (run from repo root)
 cpp/scripts/package-macos.sh
 
-# Skip the cmake build step (use existing cpp/build/fim-config-tool.app)
+# Skip the cmake build step (use existing cpp/build/Harbor.app)
 cpp/scripts/package-macos.sh --skip-build
 ```
 
@@ -26,10 +26,10 @@ Output: `cpp/build/dist/FIM-Config-Tool-<git-version>.dmg`
 
 Send the recipient this snippet along with the `.dmg`:
 
-> 1. Open the `.dmg` and drag **FIM Config Tool** to your Applications folder.
+> 1. Open the `.dmg` and drag **Harbor** to your Applications folder.
 > 2. Open **Terminal** and run:
 >    ```
->    xattr -dr com.apple.quarantine "/Applications/FIM Config Tool.app"
+>    xattr -dr com.apple.quarantine "/Applications/Harbor.app"
 >    ```
 > 3. Launch from Applications normally.
 >

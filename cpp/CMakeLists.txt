@@ -258,6 +258,14 @@ qt_add_executable(fim-config-tool
 
 target_include_directories(fim-config-tool PRIVATE src)
 
+# Pinned version string used in the window title and About dialog. Pulled
+# from project(VERSION ...) at the top of this file. The string is exposed
+# to the C++ source as a HARBOR_VERSION macro so the title can be a
+# compile-time constant.
+target_compile_definitions(fim-config-tool PRIVATE
+    HARBOR_VERSION="${PROJECT_VERSION}"
+)
+
 # Embed the transpiled QSS as a Qt resource. We use qt_add_resources rather
 # than a static .qrc file because the source path is in the build directory
 # and qt_add_resources handles that without relative-path gymnastics.
@@ -289,14 +297,33 @@ target_link_libraries(fim-config-tool PRIVATE
     spdlog::spdlog
 )
 
+# Output binary name. The CMake target stays "fim-config-tool" (an
+# internal stable identifier), but the produced executable / .app bundle
+# is named after the user-facing product. macOS uses the spaceless
+# "Harbor" because that's also the bundle display name; Linux/Windows
+# use the lowercase form for shell-friendliness.
+set_target_properties(fim-config-tool PROPERTIES OUTPUT_NAME "Harbor")
+if(NOT APPLE AND NOT WIN32)
+    set_target_properties(fim-config-tool PROPERTIES OUTPUT_NAME "harbor")
+endif()
+
 # Deployment finalization (on macOS this builds a .app bundle)
 if(APPLE)
+    # Bundle the app icon. The .icns file is generated from
+    # cpp/resources/icon/harbor-source.svg via cpp/scripts/generate-icon.sh —
+    # rerun that script after editing the source SVG.
+    set(APP_ICON_MACOSX "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/Harbor.icns")
+    set_source_files_properties("${APP_ICON_MACOSX}" PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources")
+    target_sources(fim-config-tool PRIVATE "${APP_ICON_MACOSX}")
+
     set_target_properties(fim-config-tool PROPERTIES
         MACOSX_BUNDLE ON
-        MACOSX_BUNDLE_BUNDLE_NAME "FIM Config Tool"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.ferryislandmodular.fim-config-tool"
+        MACOSX_BUNDLE_BUNDLE_NAME "Harbor"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.ferryislandmodular.harbor"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_ICON_FILE "Harbor.icns"
     )
 endif()
 

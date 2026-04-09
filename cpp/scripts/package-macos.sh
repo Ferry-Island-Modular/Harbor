@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# package-macos.sh — produce a distributable .dmg of FIM Config Tool for
+# package-macos.sh — produce a distributable .dmg of Harbor for
 # Apple Silicon (arm64) Macs. Bundles Qt frameworks via macdeployqt and
 # applies an ad-hoc code signature so Gatekeeper accepts the .app.
 #
@@ -13,13 +13,13 @@
 #   cpp/scripts/package-macos.sh                # builds, packages, signs
 #   cpp/scripts/package-macos.sh --skip-build   # skip cmake --build step
 #
-# Output: cpp/build/dist/FIM-Config-Tool-<version>.dmg
+# Output: cpp/build/dist/Harbor-<version>.dmg
 #
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BUILD_DIR="${REPO_ROOT}/cpp/build"
-APP_NAME="fim-config-tool.app"
+APP_NAME="Harbor.app"
 APP_PATH="${BUILD_DIR}/${APP_NAME}"
 DIST_DIR="${BUILD_DIR}/dist"
 
@@ -94,7 +94,7 @@ codesign --verify --deep --strict "$APP_PATH" || {
 
 # ---- pack into a .dmg ----
 mkdir -p "$DIST_DIR"
-DMG_PATH="${DIST_DIR}/FIM-Config-Tool-${VERSION}.dmg"
+DMG_PATH="${DIST_DIR}/Harbor-${VERSION}.dmg"
 rm -f "$DMG_PATH"
 
 # Stage a temp folder so the .dmg has just the .app + a Applications
@@ -106,7 +106,7 @@ ln -s /Applications "$STAGE_DIR/Applications"
 
 echo "Creating $DMG_PATH..."
 hdiutil create \
-    -volname "FIM Config Tool" \
+    -volname "Harbor" \
     -srcfolder "$STAGE_DIR" \
     -ov \
     -format UDZO \
@@ -117,5 +117,5 @@ echo "Done. Distributable .dmg:"
 echo "  $DMG_PATH"
 echo
 echo "Tell testers: after copying the .app out of the .dmg, run once:"
-echo "  xattr -dr com.apple.quarantine \"/Applications/FIM Config Tool.app\""
+echo "  xattr -dr com.apple.quarantine \"/Applications/Harbor.app\""
 echo "or right-click the .app -> Open and click Open in the dialog."

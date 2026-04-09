@@ -28,7 +28,8 @@ void RegisterBundledFonts() {
 int main(int argc, char** argv) {
     QApplication app(argc, argv);
     app.setOrganizationName("Ferry Island Modular");
-    app.setApplicationName("FIM Config Tool");
+    app.setApplicationName("Harbor");
+    app.setApplicationVersion(HARBOR_VERSION);
 
     RegisterBundledFonts();
 
