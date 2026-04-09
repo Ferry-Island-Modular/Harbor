@@ -2,23 +2,14 @@
 
 Things noticed during implementation that aren't blocking but should be revisited later. Append to this list as new ones come up; remove (with a commit reference) when fixed.
 
-## Phase 3b (Phase 3d candidate fixes)
-
-- **Silent/near-silent cells at X axis extremes — suggested fix in Phase 3d.** `frame_selection = int(x / 7.0 * (num_frames - 1))` means X=0 picks the first STFT frame and X=7 picks the last. For audio files that have fade-ins or fade-outs at the ends (most loop libraries do), the first and last 2048-sample STFT frames can be silent or near-silent. Two cliff behaviors result, both faithful to Python:
-  - **Exactly-zero tail** (e.g. `MCH_MachineRoom_FabricFactory_CT.wav`): all 2048 samples of the last frame are exact zeros → STFT bins are zero → `_extract_single_cycle` hits `peak == 0` and returns zeros → the entire x=7 column of the wavetable grid is silent across all 8 Z pages.
-  - **Near-zero tail with dither** (e.g. `MCH_MachineRoom_CarFactoryAssemblyLine_CT.wav`): a handful of samples have values near the noise floor (~1 bit in 24-bit units, ~1e-7 normalized) → STFT has tiny nonzero magnitudes → `peak > 0` so the normalization step runs → the noise floor gets amplified to 0 dBFS → x=7 cells contain "what the LSB dither sounds like at full scale". Technically audible, but musically meaningless.
-  - **Suggested fix:** add a per-cell energy threshold in `CycleExtractor::Extract` before the normalization step. If the cycle's RMS or peak is below some floor (e.g. -60 dBFS relative to the file's global peak, or a fixed threshold like 1e-4), treat the cell as silent (zero) instead of normalizing the dither up to full scale. Optionally: in `SingleWavGenerator`, if the requested STFT frame's total magnitude is below the threshold, fall back to the nearest populated frame. The two together would make X extremes degrade gracefully on files with fades instead of producing silent-or-noise cliff behavior. ~40 LOC. This is a divergence from Python behavior but an improvement — Python has the same quirks and nobody's happy about them.
-
 ## Phase 2
 
 - **Serum mode is fully deferred.** The launcher's Serum card opens a `QMessageBox` saying "not yet implemented." Designs are pending; revisit when they land.
 - **Three-wavs mode is permanently `kComingSoon`.** Will be revisited only if there's user demand.
-- **Y/Z axis option labels are placeholders** ("First option / Second option / Third option"). Real labels and behaviors land in Phase 3 with the DSP port.
-- **`SingleWavService` does not validate the input file.** It accepts any path and feeds it to `StubBankWriter`, which ignores the input entirely (just writes sine waves). Phase 3 wires real DSP and adds input validation.
-- **`SingleWavService::Generate()` is not cancellable.** Phase 2's stub generation only takes ~1 second of simulated work, so cancellation has no practical value. Real cancellation matters in Phase 3 when DSP generation takes 30+ seconds — add a `Cancel()` slot, an atomic `cancel_requested_` flag checked between progress steps, and a UI button to trigger it.
-- **`Settings` is wired but not used by the screens yet.** MainWindow / AnyWavScreen don't read or write any settings. Revisit during Phase 3 when there are real values worth persisting (last-used output directory, last-used Y/Z morph indices, audio device, preview volume).
-- **Stub bank output dir is hardcoded to `QStandardPaths::AppLocalDataLocation/audio_resynth`.** Phase 3 should plumb this through `Settings::OutputDir()` and let the user override via a directory picker.
-- **`engine_->LoadBank()` runs on the GUI thread.** Currently called from `AnyWavScreen::SetState(kDonePreviewAvailable)` after generation finishes. Fast for the placeholder sine banks (~2MB total) but real DSP output is also small enough that this is unlikely to bite. Move to a `QRunnable` if it ever stalls the UI noticeably.
+- **`SingleWavService` does not validate the input file.** It accepts any path and passes it straight to `SingleWavGenerator`, which may fail if the file is not a supported WAV. Add explicit validation with a user-friendly error.
+- **`SingleWavService::Generate()` is not cancellable.** Real DSP generation can take several seconds on a slow machine — add a `Cancel()` slot, an atomic `cancel_requested_` flag checked between pages, and a UI button to trigger it.
+- **Stub bank output dir is hardcoded to `QStandardPaths::AppLocalDataLocation/audio_resynth`.** Plumb this through `Settings::OutputDir()` and let the user override via a directory picker.
+- **`engine_->LoadBank()` runs on the GUI thread.** Currently called from `AnyWavScreen::SetState(kDonePreviewAvailable)` after generation finishes. Fast for typical banks (~2MB total) — move to a `QRunnable` only if it ever stalls the UI noticeably.
 - **Styling needs manual tuning.** The QSS port is functional but visually wonky compared to the design SVGs — paddings, spacings, color choices need adjustment. Will be done iteratively against the designs.
 
 ## Audio engine
