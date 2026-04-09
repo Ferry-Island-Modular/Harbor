@@ -35,7 +35,7 @@ LauncherScreen::LauncherScreen(QWidget* parent) : QWidget(parent) {
     serum_card_ = new CardButton("Use a Serum .wav file to create your wavetable bank",
                                  CardButton::State::kDefault, this);
     three_wavs_card_ = new CardButton("Use three .wav files to create your wavetable bank",
-                                      CardButton::State::kComingSoon, this);
+                                      CardButton::State::kDefault, this);
 
     cards_row->addWidget(any_wav_card_);
     cards_row->addWidget(serum_card_);
@@ -45,7 +45,8 @@ LauncherScreen::LauncherScreen(QWidget* parent) : QWidget(parent) {
 
     connect(any_wav_card_, &CardButton::chosen, this, [this]() { emit modeChosen(Mode::kAnyWav); });
     connect(serum_card_, &CardButton::chosen, this, [this]() { emit modeChosen(Mode::kSerum); });
-    // three_wavs_card_ stays disabled and emits no signal.
+    connect(three_wavs_card_, &CardButton::chosen, this,
+            [this]() { emit modeChosen(Mode::kThreeWavs); });
 }
 
 }  // namespace fim::ui

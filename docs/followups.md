@@ -8,7 +8,6 @@ Things noticed during implementation that aren't blocking but should be revisite
 
 ## Phase 2
 
-- **Three-wavs mode is permanently `kComingSoon`.** Will be revisited only if there's user demand.
 - **`SingleWavService` does not validate the input file.** It accepts any path and passes it straight to `SingleWavGenerator`, which may fail if the file is not a supported WAV. Add explicit validation with a user-friendly error.
 - **`SingleWavService::Generate()` is not cancellable.** Real DSP generation can take several seconds on a slow machine — add a `Cancel()` slot, an atomic `cancel_requested_` flag checked between pages, and a UI button to trigger it.
 - **Stub bank output dir is hardcoded to `QStandardPaths::AppLocalDataLocation/audio_resynth`.** Plumb this through `Settings::OutputDir()` and let the user override via a directory picker.

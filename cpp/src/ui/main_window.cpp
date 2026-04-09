@@ -7,6 +7,7 @@
 #include "ui/any_wav_screen.h"
 #include "ui/launcher_screen.h"
 #include "ui/serum_wav_screen.h"
+#include "ui/three_wav_screen.h"
 
 namespace fim::ui {
 
@@ -21,10 +22,12 @@ MainWindow::MainWindow(QWidget* parent)
     launcher_screen_ = new LauncherScreen(this);
     any_wav_screen_ = new AnyWavScreen(engine_.get(), &settings_, this);
     serum_wav_screen_ = new SerumWavScreen(engine_.get(), &settings_, this);
+    three_wav_screen_ = new ThreeWavScreen(engine_.get(), &settings_, this);
 
     launcher_index_ = stack_->addWidget(launcher_screen_);
     any_wav_index_ = stack_->addWidget(any_wav_screen_);
     serum_wav_index_ = stack_->addWidget(serum_wav_screen_);
+    three_wav_index_ = stack_->addWidget(three_wav_screen_);
 
     setCentralWidget(stack_);
 
@@ -32,6 +35,7 @@ MainWindow::MainWindow(QWidget* parent)
             [this](LauncherScreen::Mode mode) { OnModeChosen(static_cast<int>(mode)); });
     connect(any_wav_screen_, &AnyWavScreen::backRequested, this, &MainWindow::OnBackToLauncher);
     connect(serum_wav_screen_, &SerumWavScreen::backRequested, this, &MainWindow::OnBackToLauncher);
+    connect(three_wav_screen_, &ThreeWavScreen::backRequested, this, &MainWindow::OnBackToLauncher);
 
     BuildMenuBar();
 
@@ -52,8 +56,10 @@ void MainWindow::OnModeChosen(int mode) {
     } else if (m == LauncherScreen::Mode::kSerum) {
         serum_wav_screen_->Reset();
         stack_->setCurrentIndex(serum_wav_index_);
+    } else if (m == LauncherScreen::Mode::kThreeWavs) {
+        three_wav_screen_->Reset();
+        stack_->setCurrentIndex(three_wav_index_);
     }
-    // kThreeWavs is permanently disabled in the launcher.
 }
 
 void MainWindow::OnBackToLauncher() {
