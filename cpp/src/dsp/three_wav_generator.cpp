@@ -6,6 +6,8 @@
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <numbers>
+#include <random>
 #include <vector>
 
 #include "dr_wav.h"
@@ -47,13 +49,26 @@ std::vector<float> TimeAverageMagnitude(
     return avg;
 }
 
-// Zero-phase inverse FFT of a magnitude spectrum. All phases set to 0,
-// so the output is a sum of cosines. Returns a length-2048 real signal.
-std::vector<float> ZeroPhaseIfft(const std::vector<float>& magnitude, RealFft& fft) {
+// Random-phase inverse FFT of a magnitude spectrum. Each non-DC, non-
+// Nyquist bin gets a uniform random phase in [0, 2*pi); DC and Nyquist
+// stay real (their imaginary parts must be zero for the inverse to
+// produce a real signal). Seeded deterministically per cell so output
+// is reproducible across runs. This diffuses the energy across the
+// cycle (instead of clumping at t=0 like zero-phase) and produces a
+// much less buzzy, more organic sound.
+std::vector<float> RandomPhaseIfft(const std::vector<float>& magnitude, RealFft& fft,
+                                   std::uint32_t seed) {
+    std::mt19937 rng(seed);
+    std::uniform_real_distribution<float> phase_dist(0.0f, 2.0f * std::numbers::pi_v<float>);
+
     std::vector<std::complex<float>> bins(kNumBins);
-    for (std::size_t k = 0; k < kNumBins; ++k) {
-        bins[k] = std::complex<float>(magnitude[k], 0.0f);
+    bins[0] = std::complex<float>(magnitude[0], 0.0f);  // DC stays real
+    for (std::size_t k = 1; k < kNumBins - 1; ++k) {
+        const float phase = phase_dist(rng);
+        bins[k] = std::polar(magnitude[k], phase);
     }
+    bins[kNumBins - 1] = std::complex<float>(magnitude[kNumBins - 1], 0.0f);  // Nyquist real
+
     std::vector<float> output(kFftSize);
     fft.Inverse(bins.data(), output.data());
     // PFFFT inverse is unnormalized — divide by N.
@@ -137,8 +152,11 @@ bool ThreeWavGenerator::Generate(const std::array<std::filesystem::path, 3>& inp
                                       z_weight * file_avg_magnitudes[2][k];
                 }
 
-                // Zero-phase iFFT -> time-domain cell.
-                auto cell = ZeroPhaseIfft(combined_mag, ifft);
+                // Random-phase iFFT -> time-domain cell. Seed is the
+                // linear cell index so output is deterministic.
+                const std::uint32_t cell_seed =
+                    static_cast<std::uint32_t>((z * kCellsPerSide + y) * kCellsPerSide + x);
+                auto cell = RandomPhaseIfft(combined_mag, ifft, cell_seed);
 
                 // Remove DC.
                 float dc_sum = 0.0f;
