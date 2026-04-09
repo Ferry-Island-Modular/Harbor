@@ -23,6 +23,13 @@ This is a real bug that affects every release. It must be resolved before taggin
 
 The Python tool currently has the exact same bug — it also doesn't bundle Pangram. So this isn't a regression introduced by the rewrite; it's a pre-existing issue we now have to acknowledge and fix.
 
+## Phase 3b (Phase 3d candidate fixes)
+
+- **Silent/near-silent cells at X axis extremes — suggested fix in Phase 3d.** `frame_selection = int(x / 7.0 * (num_frames - 1))` means X=0 picks the first STFT frame and X=7 picks the last. For audio files that have fade-ins or fade-outs at the ends (most loop libraries do), the first and last 2048-sample STFT frames can be silent or near-silent. Two cliff behaviors result, both faithful to Python:
+  - **Exactly-zero tail** (e.g. `MCH_MachineRoom_FabricFactory_CT.wav`): all 2048 samples of the last frame are exact zeros → STFT bins are zero → `_extract_single_cycle` hits `peak == 0` and returns zeros → the entire x=7 column of the wavetable grid is silent across all 8 Z pages.
+  - **Near-zero tail with dither** (e.g. `MCH_MachineRoom_CarFactoryAssemblyLine_CT.wav`): a handful of samples have values near the noise floor (~1 bit in 24-bit units, ~1e-7 normalized) → STFT has tiny nonzero magnitudes → `peak > 0` so the normalization step runs → the noise floor gets amplified to 0 dBFS → x=7 cells contain "what the LSB dither sounds like at full scale". Technically audible, but musically meaningless.
+  - **Suggested fix:** add a per-cell energy threshold in `CycleExtractor::Extract` before the normalization step. If the cycle's RMS or peak is below some floor (e.g. -60 dBFS relative to the file's global peak, or a fixed threshold like 1e-4), treat the cell as silent (zero) instead of normalizing the dither up to full scale. Optionally: in `SingleWavGenerator`, if the requested STFT frame's total magnitude is below the threshold, fall back to the nearest populated frame. The two together would make X extremes degrade gracefully on files with fades instead of producing silent-or-noise cliff behavior. ~40 LOC. This is a divergence from Python behavior but an improvement — Python has the same quirks and nobody's happy about them.
+
 ## Phase 2
 
 - **Serum mode is fully deferred.** The launcher's Serum card opens a `QMessageBox` saying "not yet implemented." Designs are pending; revisit when they land.
