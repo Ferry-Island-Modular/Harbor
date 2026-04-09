@@ -225,6 +225,7 @@ qt_add_executable(fim-config-tool
     src/dsp/wav_loader.cpp
     src/dsp/real_fft.cpp
     src/dsp/stft.cpp
+    src/dsp/fft_resampler.cpp
     src/engine/engine_smoke.cpp
     src/engine/single_header_impls.cpp
     src/engine/wav_loader.cpp
