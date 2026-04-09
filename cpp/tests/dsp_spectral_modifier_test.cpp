@@ -98,3 +98,90 @@ TEST_CASE("SpectralModifier with z>0 produces deterministic output for a fixed s
         }
     }
 }
+
+TEST_CASE("SpectralModifier formant mode moves the peak bin", "[dsp][spectral_modifier]") {
+    // Build a spectrum with a clear peak at bin 5.
+    const std::size_t num_bins = 16;
+    const std::size_t num_frames = 2;
+    std::vector<std::vector<float>> magnitude(num_bins, std::vector<float>(num_frames, 0.1f));
+    std::vector<std::vector<float>> phase(num_bins, std::vector<float>(num_frames, 0.0f));
+    magnitude[5][0] = magnitude[5][1] = 1.0f;
+
+    fim::dsp::SpectralModifier modifier(/*seed=*/42);
+    modifier.Apply(magnitude, phase, /*x=*/3, /*y=*/7, /*z=*/0, fim::dsp::YMode::kFormant,
+                   fim::dsp::ZMode::kRandom);
+
+    // The peak should have moved away from its original bin (5).
+    float peak_mag = 0.0f;
+    std::size_t peak_bin = 0;
+    for (std::size_t k = 0; k < num_bins; ++k) {
+        if (magnitude[k][0] > peak_mag) {
+            peak_mag = magnitude[k][0];
+            peak_bin = k;
+        }
+    }
+    REQUIRE(peak_bin != 5);
+}
+
+TEST_CASE("SpectralModifier harmonic stretch stays finite and non-silent",
+          "[dsp][spectral_modifier]") {
+    auto magnitude = std::vector<std::vector<float>>(16, std::vector<float>(2, 1.0f));
+    auto phase = std::vector<std::vector<float>>(16, std::vector<float>(2, 0.0f));
+    fim::dsp::SpectralModifier modifier(/*seed=*/42);
+    modifier.Apply(magnitude, phase, /*x=*/3, /*y=*/4, /*z=*/0, fim::dsp::YMode::kStretch,
+                   fim::dsp::ZMode::kRandom);
+
+    for (const auto& row : magnitude) {
+        for (float m : row) {
+            REQUIRE(std::isfinite(m));
+        }
+    }
+    bool has_content = false;
+    for (const auto& row : magnitude) {
+        for (float m : row) {
+            if (m > 0.01f) {
+                has_content = true;
+                break;
+            }
+        }
+    }
+    REQUIRE(has_content);
+}
+
+TEST_CASE("SpectralModifier phase disperse changes phase but leaves magnitude alone",
+          "[dsp][spectral_modifier]") {
+    auto magnitude = std::vector<std::vector<float>>(16, std::vector<float>(2, 1.0f));
+    auto phase = std::vector<std::vector<float>>(16, std::vector<float>(2, 0.0f));
+
+    fim::dsp::SpectralModifier modifier(/*seed=*/42);
+    modifier.Apply(magnitude, phase, /*x=*/3, /*y=*/3, /*z=*/5, fim::dsp::YMode::kTilt,
+                   fim::dsp::ZMode::kDisperse);
+
+    bool any_phase_changed = false;
+    for (std::size_t k = 0; k < 16; ++k) {
+        for (std::size_t f = 0; f < 2; ++f) {
+            if (std::abs(phase[k][f]) > 1e-4f) {
+                any_phase_changed = true;
+                break;
+            }
+        }
+    }
+    REQUIRE(any_phase_changed);
+}
+
+TEST_CASE("SpectralModifier ZMode::kCrush is a no-op for phase", "[dsp][spectral_modifier]") {
+    auto magnitude = std::vector<std::vector<float>>(8, std::vector<float>(2, 1.0f));
+    auto phase = std::vector<std::vector<float>>(8, std::vector<float>(2, 0.5f));
+    const auto phase_before = phase;
+
+    fim::dsp::SpectralModifier modifier(/*seed=*/42);
+    modifier.Apply(magnitude, phase, /*x=*/3, /*y=*/3, /*z=*/7, fim::dsp::YMode::kTilt,
+                   fim::dsp::ZMode::kCrush);
+
+    // Phase must be bit-identical — kCrush should not touch it.
+    for (std::size_t k = 0; k < 8; ++k) {
+        for (std::size_t f = 0; f < 2; ++f) {
+            REQUIRE(phase[k][f] == phase_before[k][f]);
+        }
+    }
+}

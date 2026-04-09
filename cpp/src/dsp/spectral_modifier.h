@@ -6,23 +6,50 @@
 
 namespace fim::dsp {
 
-// Applies the Phase 3b "original" spectral modifications (tilt + stretch +
-// phase randomize) to a 2D magnitude/phase array in place. Direct port of
-// Python's AudioResynthWavetableGenerator._spectral_modifications.
+// Y-axis morph modes. The original Phase 3b behavior is kTilt.
+//
+// - kTilt:    exponential brightness shift (darkens or brightens uniformly)
+// - kFormant: shifts the spectral envelope up or down in frequency while
+//             preserving its shape — sounds like a formant shift on vowels
+// - kStretch: non-linear log-frequency remapping that stretches or
+//             compresses the harmonic spacing — inharmonic/bell-like character
+enum class YMode {
+    kTilt,
+    kFormant,
+    kStretch,
+};
+
+// Z-axis morph modes. The original Phase 3b behavior is kRandom.
+//
+// - kRandom:   blend the original phase with uniform random phase + bin-wise
+//              smoothing (noisy/diffuse character)
+// - kDisperse: frequency-dependent phase shift centered at a chosen bin —
+//              comb-filter-like character
+// - kCrush:    HANDLED OUTSIDE THIS CLASS. ZCrush is a time-domain post-effect
+//              applied in SingleWavGenerator after cycle extraction. When
+//              Apply() receives kCrush it leaves the phase array untouched
+//              (the Y mode still runs normally).
+enum class ZMode {
+    kRandom,
+    kDisperse,
+    kCrush,
+};
+
+// Applies the chosen Y and Z morph modes to a 2D magnitude/phase array in
+// place. Y runs first (matching Phase 3b and Python), then the X-driven
+// spectral envelope stretch operates on the Y-modified envelope, then the
+// Z mode applies phase-domain transformations.
 //
 // Parameter semantics:
-// - x in [0, 7]: spectral envelope stretch. stretch_amount in [0.5, 2.0].
-//   Values < 1 compress the envelope toward DC; values > 1 spread it
-//   toward the Nyquist.
-// - y in [0, 7]: spectral tilt. y=0 darkens (low bins amplified, highs
-//   attenuated). y=7 brightens (highs amplified). y=3 or 4 is approximately
-//   neutral.
-// - z in [0, 7]: phase randomization strength. z=0 leaves phase untouched.
-//   Higher z blends the original phase with random uniform phase, then
-//   smooths adjacent bins for a formant-like effect.
+// - x in [0, 7]: spectral envelope stretch (0.5x..2.0x). Always applies.
+// - y in [0, 7]: strength of the Y morph mode. y=3 or 4 is roughly neutral.
+// - z in [0, 7]: strength of the Z morph mode. z=0 leaves phase untouched.
+// - y_mode: which Y transformation to apply.
+// - z_mode: which Z transformation to apply. kCrush is a no-op here;
+//           handle it in the caller as a post-effect.
 //
-// The 2D arrays are indexed as magnitude[bin][frame] (matches Python's
-// numpy convention from np.abs(stft_result)).
+// The 2D arrays are indexed as magnitude[bin][frame] (Python numpy
+// convention from scipy.signal.stft).
 class SpectralModifier {
 public:
     // Default-constructed: seeds the RNG from std::random_device.
@@ -35,11 +62,9 @@ public:
     // Reseed the internal RNG. Useful for resetting between generate runs.
     void Seed(std::uint32_t seed);
 
-    // Apply tilt + stretch + phase modifications in place. Both arrays
-    // must have the same outer dimension (num_bins) and the same inner
-    // dimension (num_frames) per row.
+    // Default arguments preserve Phase 3b behavior (tilt + phase randomize).
     void Apply(std::vector<std::vector<float>>& magnitude, std::vector<std::vector<float>>& phase,
-               int x, int y, int z);
+               int x, int y, int z, YMode y_mode = YMode::kTilt, ZMode z_mode = ZMode::kRandom);
 
 private:
     std::mt19937 rng_;
