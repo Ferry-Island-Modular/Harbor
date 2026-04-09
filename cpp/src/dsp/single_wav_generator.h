@@ -5,6 +5,8 @@
 #include <functional>
 #include <vector>
 
+#include "dsp/generate_options.h"
+
 namespace fim::dsp {
 
 // Top-level single-WAV wavetable generator. Loads an input audio file,
@@ -30,10 +32,13 @@ public:
     // if needed.
     using ProgressCallback = std::function<void(int percent)>;
 
-    // Run the full pipeline. Returns false on any I/O or DSP error.
-    // The output directory is created if it doesn't exist.
+    // Run the full pipeline. The options parameter selects the Y/Z morph
+    // modes; defaults reproduce Phase 3b behavior (tilt + phase randomize).
+    // Returns false on any I/O or DSP error. The output directory is
+    // created if it doesn't exist.
     bool Generate(const std::filesystem::path& input_audio_path,
                   const std::filesystem::path& output_directory,
+                  const GenerateOptions& options = {},
                   const ProgressCallback& on_progress = {}) const;
 
     std::size_t samples() const { return samples_; }

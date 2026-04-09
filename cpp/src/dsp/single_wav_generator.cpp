@@ -10,6 +10,7 @@
 #include "dr_wav.h"
 #include "dsp/cycle_extractor.h"
 #include "dsp/fft_resampler.h"
+#include "dsp/post_effects.h"
 #include "dsp/spectral_modifier.h"
 #include "dsp/stft.h"
 #include "dsp/wav_loader.h"
@@ -35,26 +36,22 @@ SingleWavGenerator::SingleWavGenerator(std::size_t samples, std::size_t oversamp
 
 bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
                                   const std::filesystem::path& output_directory,
+                                  const GenerateOptions& options,
                                   const ProgressCallback& on_progress) const {
-    // Step 1: load and normalize the input audio.
     auto loaded = LoadWav(input_audio_path, /*normalize=*/true);
     if (!loaded.has_value() || loaded->samples.empty()) {
         return false;
     }
 
-    // Step 2: ensure the output directory exists.
     std::error_code ec;
     std::filesystem::create_directories(output_directory, ec);
     if (ec) {
         return false;
     }
 
-    // Step 3: STFT analysis. Cached across pages — same input audio for all
-    // 8 z values.
     Stft stft(kStftFftSize, kStftHopSize);
     const auto bins = stft.Analyze(loaded->samples);
     if (bins.empty()) {
-        // Audio is shorter than fft_size. Cannot resynthesize.
         return false;
     }
     const auto magnitude = Magnitude(bins);
@@ -77,19 +74,20 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
         }
     }
 
-    // Step 4: prepare DSP objects (constructed once, reused across cells).
     CycleExtractor extractor(kStftFftSize, n_samples_);
     FftResampler downsampler(n_samples_, samples_);
 
-    // Step 5: for each Z page, generate 64 cells, downsample, and write.
     for (std::size_t z = 0; z < num_pages_; ++z) {
-        // Use a fresh SpectralModifier per page so phase randomization is
-        // varied between pages but reproducible within a single Generate
-        // call. Phase 3c may make the seed configurable.
         SpectralModifier modifier;
 
-        // Each cell's downsampled samples are appended sequentially into
-        // the page buffer: total size = samples_ * 64.
+        // Precompute the Z-crush params for this page if crush mode is
+        // selected. We use `z` (the page index) as the crush intensity so
+        // later pages are progressively more crushed — mirrors how Z0/Z1
+        // modes get progressively stronger with z.
+        const ZCrushParams crush_params = (options.z_mode == ZMode::kCrush)
+                                              ? ZCrushAmount(static_cast<int>(z))
+                                              : ZCrushParams{16, 1};
+
         std::vector<float> page_downsampled;
         page_downsampled.reserve(samples_ * kCellsPerPage);
 
@@ -98,13 +96,20 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
                 auto mag_copy = magnitude_t;
                 auto phase_copy = phase_t;
                 modifier.Apply(mag_copy, phase_copy, static_cast<int>(x), static_cast<int>(y),
-                               static_cast<int>(z));
+                               static_cast<int>(z), options.y_mode, options.z_mode);
 
                 const std::size_t frame_selection = static_cast<std::size_t>(
                     static_cast<float>(x) / 7.0f * static_cast<float>(num_frames - 1));
 
-                const auto cell_oversampled =
-                    extractor.Extract(mag_copy, phase_copy, frame_selection);
+                auto cell_oversampled = extractor.Extract(mag_copy, phase_copy, frame_selection);
+
+                // Z-crush runs as a post-effect on the oversampled cycle
+                // before downsampling, so the quantization levels and
+                // sample-hold pattern are preserved through the final
+                // rate conversion rather than being smoothed out.
+                if (options.z_mode == ZMode::kCrush) {
+                    ZCrush(cell_oversampled, crush_params.bit_depth, crush_params.sample_hold);
+                }
 
                 const auto cell_downsampled = downsampler.Resample(cell_oversampled);
                 page_downsampled.insert(page_downsampled.end(), cell_downsampled.begin(),
@@ -112,9 +117,6 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
             }
         }
 
-        // Step 6: globally normalize the page so the max abs value across
-        // all 131072 samples is 1.0. Matches Python's save_wavetables which
-        // divides by the global max before int16 quantization.
         float page_peak = 0.0f;
         for (float s : page_downsampled) {
             page_peak = std::max(page_peak, std::abs(s));
