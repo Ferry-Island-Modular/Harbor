@@ -11,6 +11,8 @@ constexpr const char* kKeyAudioDevice = "audio_device";
 constexpr const char* kKeyPreviewVolume = "preview_volume";
 constexpr const char* kKeyYMorph = "y_morph";
 constexpr const char* kKeyZMorph = "z_morph";
+constexpr const char* kKeySerumYMorph = "serum_y_morph";
+constexpr const char* kKeySerumZMorph = "serum_z_morph";
 
 }  // namespace
 
@@ -68,6 +70,22 @@ int Settings::ZMorph() const {
 
 void Settings::SetZMorph(int index) {
     backing_.setValue(kKeyZMorph, index);
+}
+
+int Settings::SerumYMorph() const {
+    return backing_.value(kKeySerumYMorph, 0).toInt();
+}
+
+void Settings::SetSerumYMorph(int index) {
+    backing_.setValue(kKeySerumYMorph, index);
+}
+
+int Settings::SerumZMorph() const {
+    return backing_.value(kKeySerumZMorph, 1).toInt();
+}
+
+void Settings::SetSerumZMorph(int index) {
+    backing_.setValue(kKeySerumZMorph, index);
 }
 
 }  // namespace fim::app

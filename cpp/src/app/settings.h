@@ -44,6 +44,15 @@ public:
     int ZMorph() const;
     void SetZMorph(int index);
 
+    // ---- serum_y_morph / serum_z_morph ----
+    // Index into the Serum mode's 4-option AxisMorphSelector. Default
+    // matches Python's SerumWavetableConverter: Y = 0 (FORMANT_SCALE),
+    // Z = 1 (PHASE_DISPERSE).
+    int SerumYMorph() const;
+    void SetSerumYMorph(int index);
+    int SerumZMorph() const;
+    void SetSerumZMorph(int index);
+
 private:
     QSettings backing_;
 };

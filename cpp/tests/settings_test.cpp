@@ -75,3 +75,28 @@ TEST_CASE_METHOD(SettingsFixture, "Settings persists across instances", "[settin
         REQUIRE(b.PreviewVolume() == 75);
     }
 }
+
+TEST_CASE_METHOD(SettingsFixture, "Settings round-trips serum_y_morph", "[settings]") {
+    fim::app::Settings settings;
+    settings.SetSerumYMorph(2);
+    REQUIRE(settings.SerumYMorph() == 2);
+    settings.SetSerumYMorph(0);
+    REQUIRE(settings.SerumYMorph() == 0);
+}
+
+TEST_CASE_METHOD(SettingsFixture, "Settings round-trips serum_z_morph", "[settings]") {
+    fim::app::Settings settings;
+    settings.SetSerumZMorph(3);
+    REQUIRE(settings.SerumZMorph() == 3);
+    settings.SetSerumZMorph(1);
+    REQUIRE(settings.SerumZMorph() == 1);
+}
+
+TEST_CASE_METHOD(SettingsFixture, "Settings serum morph defaults are 0 and 1", "[settings]") {
+    // Defaults match Python's SerumWavetableConverter:
+    //   y_morph_type = MorphType.FORMANT_SCALE  (index 0)
+    //   z_morph_type = MorphType.PHASE_DISPERSE (index 1)
+    fim::app::Settings settings;
+    REQUIRE(settings.SerumYMorph() == 0);
+    REQUIRE(settings.SerumZMorph() == 1);
+}
