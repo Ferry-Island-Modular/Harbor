@@ -56,7 +56,10 @@ public:
     // Resets the screen back to the empty state. Called when the user
     // navigates away and returns. Also calls the subclass OnResetHook so
     // mode-specific state (file path, selector positions) can reset too.
-    void Reset();
+    //
+    // Virtual so multi-file modes can override to handle their own
+    // state (e.g. ThreeWavScreen clears 3 slots and stays in kFileSet).
+    virtual void Reset();
 
 signals:
     void backRequested();
@@ -113,6 +116,18 @@ protected:
     // Transitions to kGenerating and calls service->Generate().
     void OnGenerateClicked();
 
+    // Transition the state machine. Subclasses occasionally need this
+    // (e.g. ThreeWavScreen jumping to kFileSet from its constructor
+    // since it doesn't use the kEmpty state at all).
+    void SetState(State state);
+
+    // Whether the file-set page should show the default "single filename
+    // label + clear button" row above the subclass content. Single-file
+    // modes (any-wav, Serum) return true (default). Multi-file modes
+    // (three-wav) return false to suppress the row and manage filenames
+    // inside their own content.
+    virtual bool ShowDefaultFilenameRow() const { return true; }
+
     // Protected accessors for subclass use.
     fim::engine::RealtimeAudioEngine* engine() const { return engine_; }
     fim::app::Settings* settings() const { return settings_; }
@@ -127,7 +142,6 @@ private slots:
     void OnGenerationFinished();
 
 private:
-    void SetState(State state);
     QWidget* BuildEmptyPage();
     QWidget* BuildFileSetPage();
     QWidget* BuildGeneratingPage();

@@ -135,17 +135,20 @@ QWidget* ModeScreenBase::BuildFileSetPage() {
     title->setObjectName("anyWavTitle");
     layout->addWidget(title);
 
-    // Filename row — shared between all modes.
-    auto* file_row = new QHBoxLayout();
-    filename_label_ = new QLabel("(no file)", page);
-    filename_label_->setObjectName("anyWavFilename");
-    auto* clear_button = new QPushButton("Clear", page);
-    clear_button->setObjectName("clearButton");
-    file_row->addWidget(filename_label_);
-    file_row->addStretch();
-    file_row->addWidget(clear_button);
-    layout->addLayout(file_row);
-    connect(clear_button, &QPushButton::clicked, this, &ModeScreenBase::OnClearClicked);
+    // Filename row — shared between single-file modes. Three-wav and
+    // other multi-file modes override ShowDefaultFilenameRow() to skip.
+    if (ShowDefaultFilenameRow()) {
+        auto* file_row = new QHBoxLayout();
+        filename_label_ = new QLabel("(no file)", page);
+        filename_label_->setObjectName("anyWavFilename");
+        auto* clear_button = new QPushButton("Clear", page);
+        clear_button->setObjectName("clearButton");
+        file_row->addWidget(filename_label_);
+        file_row->addStretch();
+        file_row->addWidget(clear_button);
+        layout->addLayout(file_row);
+        connect(clear_button, &QPushButton::clicked, this, &ModeScreenBase::OnClearClicked);
+    }
 
     layout->addWidget(BuildFileSetPageContent(page));
     layout->addStretch();
