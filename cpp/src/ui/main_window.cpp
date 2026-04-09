@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget* parent)
     stack_ = new QStackedWidget(this);
 
     launcher_screen_ = new LauncherScreen(this);
-    any_wav_screen_ = new AnyWavScreen(engine_.get(), this);
+    any_wav_screen_ = new AnyWavScreen(engine_.get(), &settings_, this);
 
     launcher_index_ = stack_->addWidget(launcher_screen_);
     any_wav_index_ = stack_->addWidget(any_wav_screen_);

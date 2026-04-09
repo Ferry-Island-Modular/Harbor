@@ -3,6 +3,8 @@
 #include <QMainWindow>
 #include <memory>
 
+#include "app/settings.h"
+
 class QStackedWidget;
 
 namespace fim::engine {
@@ -14,8 +16,9 @@ namespace fim::ui {
 class AnyWavScreen;
 class LauncherScreen;
 
-// Top-level QMainWindow. Owns the RealtimeAudioEngine and the QStackedWidget
-// router that swaps between LauncherScreen and AnyWavScreen.
+// Top-level QMainWindow. Owns the RealtimeAudioEngine, the persistent
+// Settings instance, and the QStackedWidget router that swaps between
+// LauncherScreen and AnyWavScreen.
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -31,6 +34,7 @@ private:
     void BuildMenuBar();
 
     std::unique_ptr<fim::engine::RealtimeAudioEngine> engine_;
+    fim::app::Settings settings_;
     QStackedWidget* stack_ = nullptr;
     LauncherScreen* launcher_screen_ = nullptr;
     AnyWavScreen* any_wav_screen_ = nullptr;

@@ -15,6 +15,8 @@
 #include <QVBoxLayout>
 
 #include "app/services/single_wav_service.h"
+#include "app/settings.h"
+#include "dsp/spectral_modifier.h"
 #include "engine/realtime_audio_engine.h"
 #include "ui/widgets/axis_morph_selector.h"
 #include "ui/widgets/custom_progress_bar.h"
@@ -36,6 +38,31 @@ QString StubOutputDir() {
     return QDir(base).filePath("audio_resynth");
 }
 
+// Map a selector button index (0..2) to the corresponding enum value.
+fim::dsp::YMode YModeFromIndex(int index) {
+    switch (index) {
+        case 1:
+            return fim::dsp::YMode::kFormant;
+        case 2:
+            return fim::dsp::YMode::kStretch;
+        case 0:
+        default:
+            return fim::dsp::YMode::kTilt;
+    }
+}
+
+fim::dsp::ZMode ZModeFromIndex(int index) {
+    switch (index) {
+        case 1:
+            return fim::dsp::ZMode::kDisperse;
+        case 2:
+            return fim::dsp::ZMode::kCrush;
+        case 0:
+        default:
+            return fim::dsp::ZMode::kRandom;
+    }
+}
+
 QPushButton* MakeBackButton(QWidget* parent) {
     auto* button = new QPushButton("← Back", parent);
     button->setObjectName("backButton");
@@ -52,11 +79,16 @@ QLabel* MakeTitle(QWidget* parent) {
 
 }  // namespace
 
-AnyWavScreen::AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, QWidget* parent)
-    : QWidget(parent), engine_(engine) {
+AnyWavScreen::AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, fim::app::Settings* settings,
+                           QWidget* parent)
+    : QWidget(parent), engine_(engine), settings_(settings) {
     setObjectName("anyWavScreen");
     service_ = new fim::app::SingleWavService(this);
     service_->SetOutputDirectory(StubOutputDir());
+
+    // Initialize the service with the last-used modes from settings.
+    service_->SetYMode(YModeFromIndex(settings_->YMorph()));
+    service_->SetZMode(ZModeFromIndex(settings_->ZMorph()));
 
     auto* root_layout = new QVBoxLayout(this);
     root_layout->setContentsMargins(32, 32, 32, 32);
@@ -85,6 +117,13 @@ AnyWavScreen::AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, QWidget* pa
 
 void AnyWavScreen::Reset() {
     current_file_.clear();
+    // Re-sync the selectors from settings (in case they changed elsewhere).
+    if (y_selector_ != nullptr) {
+        y_selector_->SetCurrentIndex(settings_->YMorph());
+    }
+    if (z_selector_ != nullptr) {
+        z_selector_->SetCurrentIndex(settings_->ZMorph());
+    }
     SetState(State::kEmpty);
 }
 
@@ -173,14 +212,21 @@ QWidget* AnyWavScreen::BuildFileSetPage() {
     x_descriptor->setObjectName("anyWavAxisDescriptor");
     layout->addWidget(x_descriptor);
 
-    // Y axis (selector)
-    const QStringList placeholder_options{"First option", "Second option", "Third option"};
-    y_selector_ = new AxisMorphSelector("Y axis", placeholder_options, page);
+    // Y axis selector with real morph mode labels.
+    const QStringList y_options{"Tilt", "Formant", "Stretch"};
+    y_selector_ = new AxisMorphSelector("Y axis", y_options, page);
+    y_selector_->SetCurrentIndex(settings_->YMorph());
     layout->addWidget(y_selector_);
+    connect(y_selector_, &AxisMorphSelector::currentIndexChanged, this,
+            &AnyWavScreen::OnYModeChanged);
 
-    // Z axis (selector)
-    z_selector_ = new AxisMorphSelector("Z axis", placeholder_options, page);
+    // Z axis selector with real morph mode labels.
+    const QStringList z_options{"Random", "Disperse", "Crush"};
+    z_selector_ = new AxisMorphSelector("Z axis", z_options, page);
+    z_selector_->SetCurrentIndex(settings_->ZMorph());
     layout->addWidget(z_selector_);
+    connect(z_selector_, &AxisMorphSelector::currentIndexChanged, this,
+            &AnyWavScreen::OnZModeChanged);
 
     auto* generate_row = new QHBoxLayout();
     auto* generate_button = new QPushButton("Generate wavetable bank", page);
@@ -299,6 +345,16 @@ void AnyWavScreen::OnProgressChanged(int percent) {
 
 void AnyWavScreen::OnGenerationFinished() {
     SetState(State::kDoneMessage);
+}
+
+void AnyWavScreen::OnYModeChanged(int index) {
+    service_->SetYMode(YModeFromIndex(index));
+    settings_->SetYMorph(index);
+}
+
+void AnyWavScreen::OnZModeChanged(int index) {
+    service_->SetZMode(ZModeFromIndex(index));
+    settings_->SetZMorph(index);
 }
 
 }  // namespace fim::ui

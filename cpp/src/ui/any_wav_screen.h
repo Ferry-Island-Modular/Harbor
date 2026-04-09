@@ -12,8 +12,9 @@ class RealtimeAudioEngine;
 }
 
 namespace fim::app {
+class Settings;
 class SingleWavService;
-}
+}  // namespace fim::app
 
 namespace fim::ui {
 
@@ -46,10 +47,11 @@ public:
         kDonePreviewAvailable,
     };
 
-    explicit AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, QWidget* parent = nullptr);
+    AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, fim::app::Settings* settings,
+                 QWidget* parent = nullptr);
 
-    // Resets the screen back to the empty state. Called when the user
-    // navigates away and returns later.
+    // Resets the screen back to the empty state and re-syncs the Y/Z
+    // selectors from Settings (in case they were written from elsewhere).
     void Reset();
 
 signals:
@@ -62,6 +64,8 @@ private slots:
     void OnExportClicked();
     void OnProgressChanged(int percent);
     void OnGenerationFinished();
+    void OnYModeChanged(int index);
+    void OnZModeChanged(int index);
 
 private:
     void SetState(State state);
@@ -70,7 +74,8 @@ private:
     QWidget* BuildGeneratingPage();
     QWidget* BuildDonePage(bool with_preview);
 
-    fim::engine::RealtimeAudioEngine* engine_;
+    fim::engine::RealtimeAudioEngine* engine_;  // non-owning
+    fim::app::Settings* settings_;              // non-owning
     fim::app::SingleWavService* service_ = nullptr;
     QString current_file_;
 
