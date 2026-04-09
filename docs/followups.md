@@ -2,27 +2,6 @@
 
 Things noticed during implementation that aren't blocking but should be revisited later. Append to this list as new ones come up; remove (with a commit reference) when fixed.
 
-## ⚠️ KNOWN ISSUES — must address before any release
-
-### Pangram font is NOT bundled with the app
-
-**Severity:** Distribution blocker.
-
-`cpp/styles/input.scss` declares `font-family: 'Pangram'` for every text element in the UI, but **no Pangram font file ships with the app**. Qt resolves the family name from the OS font cache at runtime, which means:
-
-- On the developer's Mac (where Pangram is installed system-wide), the app looks correct.
-- On every other machine — CI runners, end-user downloads, fresh installs — Qt silently falls back to the system default sans, and the app does NOT match the designs in `designs/`.
-
-This is a real bug that affects every release. It must be resolved before tagging a public version.
-
-**Possible fixes (decision for the project owner + designer):**
-
-1. **License + bundle Pangram.** The font is commercial (Pangram Pangram Foundry). Buy a license that allows redistribution as part of an application, then drop the font files into `cpp/resources/fonts/` and load them via `QFontDatabase::addApplicationFont` from a Qt resource. Cost: licensing fee. Most accurate to the design.
-2. **Substitute a permissively-licensed lookalike sans.** Candidates: Inter (SIL OFL, very common), Public Sans (SIL OFL), Geist Sans (MIT). Pick one, update `cpp/styles/input.scss`, register via `QFontDatabase::addApplicationFont`. Cost: free, requires designer signoff.
-3. **Accept system fallback as shipped behavior.** The app looks slightly different on every OS. Cost: zero, but the design becomes "approximate".
-
-The Python tool currently has the exact same bug — it also doesn't bundle Pangram. So this isn't a regression introduced by the rewrite; it's a pre-existing issue we now have to acknowledge and fix.
-
 ## Phase 3b (Phase 3d candidate fixes)
 
 - **Silent/near-silent cells at X axis extremes — suggested fix in Phase 3d.** `frame_selection = int(x / 7.0 * (num_frames - 1))` means X=0 picks the first STFT frame and X=7 picks the last. For audio files that have fade-ins or fade-outs at the ends (most loop libraries do), the first and last 2048-sample STFT frames can be silent or near-silent. Two cliff behaviors result, both faithful to Python:

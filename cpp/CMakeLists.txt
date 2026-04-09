@@ -256,6 +256,15 @@ qt_add_resources(fim-config-tool "app_styles"
 )
 add_dependencies(fim-config-tool transpile_qss)
 
+# Embed the bundled Inter font so the stylesheet's font-family: "Inter"
+# lookup resolves identically on every machine, regardless of what's
+# installed system-wide. SIL OFL licensed — see resources/fonts/LICENSE-Inter.txt.
+qt_add_resources(fim-config-tool "app_fonts"
+    PREFIX "/fonts"
+    BASE   "${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts"
+    FILES  "${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/InterVariable.ttf"
+)
+
 target_link_libraries(fim-config-tool PRIVATE
     Qt6::Core
     Qt6::Widgets
