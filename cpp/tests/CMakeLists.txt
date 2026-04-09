@@ -14,6 +14,7 @@ add_executable(fim-tests
     dsp_cycle_extractor_test.cpp
     dsp_post_effects_test.cpp
     dsp_serum_loader_test.cpp
+    dsp_serum_morpher_test.cpp
     ../src/engine/single_header_impls.cpp
     ../src/engine/wav_loader.cpp
     ../src/engine/wavetable_bank.cpp
@@ -29,6 +30,7 @@ add_executable(fim-tests
     ../src/dsp/cycle_extractor.cpp
     ../src/dsp/post_effects.cpp
     ../src/dsp/serum_loader.cpp
+    ../src/dsp/serum_morpher.cpp
 )
 
 target_include_directories(fim-tests PRIVATE
