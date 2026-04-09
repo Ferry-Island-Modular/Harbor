@@ -24,6 +24,13 @@ Things noticed during implementation that aren't blocking but should be revisite
 - **`std::atomic_load` / `std::atomic_store` for `std::shared_ptr` in `WavetableVoice`** is deprecated in C++20. The intended migration target — `std::atomic<std::shared_ptr<T>>` (P0718R2) — is not yet available in Apple libc++ (libc++ on the macOS 26.2 SDK still requires `T` to be trivially copyable). Revisit when libc++ ships the partial specialization, or switch to libstdc++ (which already has it). The deprecated free-function form still compiles silently with our current flags so this is purely cleanup.
 - **`WavetableEngine` (offline rendering) was not vendored from `bindings.cpp@8d36c15`** — Phase 1 only needed the realtime path. Revisit if we want offline rendering for DSP comparison testing against the Python reference.
 
+## Distribution
+
+- **macOS notarized release.** `cpp/scripts/package-macos.sh` produces an ad-hoc-signed `.dmg` suitable for internal team testing, but recipients have to clear the quarantine attribute manually. For a public release we need: (1) Apple Developer Program membership, (2) a "Developer ID Application" certificate, (3) `codesign` with hardened runtime, (4) `notarytool submit --wait`, (5) `xcrun stapler staple`. Wire this into the script behind a `--notarize` flag once we have the cert.
+- **Universal macOS binary.** Current `package-macos.sh` builds host-arch only (arm64 on dev machines). For Intel coverage we'd need to build twice with `-DCMAKE_OSX_ARCHITECTURES=arm64` and `=x86_64`, then `lipo -create` the executables and every dylib in `Contents/Frameworks/`. Skipped for now since all current testers are M1+.
+- **Windows packaging.** No script yet. Will need `windeployqt` plus an installer (Inno Setup or WiX) and ideally an EV code-signing cert (otherwise SmartScreen will warn).
+- **Linux packaging.** No script yet. AppImage is the path of least resistance for "drop in Slack and run anywhere"; alternatively a Flatpak for proper distro integration.
+
 ## Build / CI
 
 - **CI annotations**: `actions/checkout@v4` and `actions/setup-node@v4` are flagged as Node.js 20 actions, deprecated by GitHub June 2026. Bump to whatever version supports Node.js 24 closer to that date.
