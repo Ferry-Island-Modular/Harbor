@@ -45,6 +45,8 @@ fim::dsp::YMode YModeFromIndex(int index) {
             return fim::dsp::YMode::kFormant;
         case 2:
             return fim::dsp::YMode::kStretch;
+        case 3:
+            return fim::dsp::YMode::kSmear;
         case 0:
         default:
             return fim::dsp::YMode::kTilt;
@@ -213,7 +215,7 @@ QWidget* AnyWavScreen::BuildFileSetPage() {
     layout->addWidget(x_descriptor);
 
     // Y axis selector with real morph mode labels.
-    const QStringList y_options{"Tilt", "Formant", "Stretch"};
+    const QStringList y_options{"Tilt", "Formant", "Stretch", "Smear"};
     y_selector_ = new AxisMorphSelector("Y axis", y_options, page);
     y_selector_->SetCurrentIndex(settings_->YMorph());
     layout->addWidget(y_selector_);

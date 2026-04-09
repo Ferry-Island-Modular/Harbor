@@ -13,10 +13,13 @@ namespace fim::dsp {
 //             preserving its shape — sounds like a formant shift on vowels
 // - kStretch: non-linear log-frequency remapping that stretches or
 //             compresses the harmonic spacing — inharmonic/bell-like character
+// - kSmear:   adjacent-bin magnitude averaging — softens spectral peaks,
+//             creates a diffuse/blurred texture
 enum class YMode {
     kTilt,
     kFormant,
     kStretch,
+    kSmear,
 };
 
 // Z-axis morph modes. The original Phase 3b behavior is kRandom.

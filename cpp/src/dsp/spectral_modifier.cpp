@@ -118,6 +118,45 @@ void ApplyHarmonicStretch(std::vector<std::vector<float>>& magnitude, float y_no
     }
 }
 
+// Y3: smear. Softens spectral peaks by averaging each bin with its
+// neighbors, weighted by y_norm. At y_norm=0 this is identity; at y_norm=1
+// each bin is fully replaced by the average of its 5-bin neighborhood.
+//
+// Bespoke implementation — NOT Vital's running-average-with-(i+0.25)/i
+// scaling. That version lives in SerumMorpher for Serum mode. Both are
+// "smear" but tuned to their data shapes (single-wav's 2D STFT vs Serum's
+// 1D single-frame rfft).
+void ApplySmear(std::vector<std::vector<float>>& magnitude, float y_norm) {
+    const std::size_t num_bins = magnitude.size();
+    if (num_bins < 3 || magnitude[0].empty()) {
+        return;
+    }
+    const std::size_t num_frames = magnitude[0].size();
+
+    // Per frame: compute a 5-tap moving average of the magnitude column,
+    // then lerp from the original into the smoothed version by y_norm.
+    std::vector<float> smoothed(num_bins, 0.0f);
+    for (std::size_t f = 0; f < num_frames; ++f) {
+        // 5-tap moving average with edge clamping.
+        for (std::size_t k = 0; k < num_bins; ++k) {
+            float sum = 0.0f;
+            int count = 0;
+            for (int offset = -2; offset <= 2; ++offset) {
+                const long idx = static_cast<long>(k) + offset;
+                if (idx >= 0 && idx < static_cast<long>(num_bins)) {
+                    sum += magnitude[static_cast<std::size_t>(idx)][f];
+                    count += 1;
+                }
+            }
+            smoothed[k] = sum / static_cast<float>(count);
+        }
+        // Lerp original → smoothed by y_norm.
+        for (std::size_t k = 0; k < num_bins; ++k) {
+            magnitude[k][f] = magnitude[k][f] * (1.0f - y_norm) + smoothed[k] * y_norm;
+        }
+    }
+}
+
 // X-driven spectral envelope stretch. Runs AFTER the Y mode and reads the
 // envelope from the Y-modified magnitude. Matches Phase 3b/Python.
 void ApplyXStretch(std::vector<std::vector<float>>& magnitude, float x_norm) {
@@ -245,6 +284,9 @@ void SpectralModifier::Apply(std::vector<std::vector<float>>& magnitude,
             break;
         case YMode::kStretch:
             ApplyHarmonicStretch(magnitude, y_norm);
+            break;
+        case YMode::kSmear:
+            ApplySmear(magnitude, y_norm);
             break;
     }
 

@@ -169,6 +169,49 @@ TEST_CASE("SpectralModifier phase disperse changes phase but leaves magnitude al
     REQUIRE(any_phase_changed);
 }
 
+TEST_CASE("SpectralModifier smear mode reduces adjacent-bin magnitude variance",
+          "[dsp][spectral_modifier]") {
+    // Build a spiky spectrum with every other bin at mag=1 and the rest at 0.
+    const std::size_t num_bins = 16;
+    const std::size_t num_frames = 2;
+    std::vector<std::vector<float>> magnitude(num_bins, std::vector<float>(num_frames, 0.0f));
+    std::vector<std::vector<float>> phase(num_bins, std::vector<float>(num_frames, 0.0f));
+    for (std::size_t k = 0; k < num_bins; ++k) {
+        if (k % 2 == 0) {
+            magnitude[k][0] = magnitude[k][1] = 1.0f;
+        }
+    }
+
+    // Compute variance before.
+    auto variance = [](const std::vector<std::vector<float>>& mag) {
+        float sum = 0.0f;
+        float count = 0.0f;
+        for (const auto& row : mag) {
+            for (float v : row) {
+                sum += v;
+                count += 1.0f;
+            }
+        }
+        const float mean = sum / count;
+        float var = 0.0f;
+        for (const auto& row : mag) {
+            for (float v : row) {
+                var += (v - mean) * (v - mean);
+            }
+        }
+        return var / count;
+    };
+    const float variance_before = variance(magnitude);
+
+    fim::dsp::SpectralModifier modifier(/*seed=*/42);
+    modifier.Apply(magnitude, phase, /*x=*/3, /*y=*/7, /*z=*/0, fim::dsp::YMode::kSmear,
+                   fim::dsp::ZMode::kRandom);
+
+    const float variance_after = variance(magnitude);
+    // Smear should significantly reduce the bin-to-bin variance.
+    REQUIRE(variance_after < variance_before * 0.5f);
+}
+
 TEST_CASE("SpectralModifier ZMode::kCrush is a no-op for phase", "[dsp][spectral_modifier]") {
     auto magnitude = std::vector<std::vector<float>>(8, std::vector<float>(2, 1.0f));
     auto phase = std::vector<std::vector<float>>(8, std::vector<float>(2, 0.5f));
