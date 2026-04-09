@@ -13,7 +13,10 @@ namespace fim::ui {
 namespace {
 
 constexpr int kPositionSliderMax = 699;
-constexpr int kMidiNoteMin = 36;
+// Min is MIDI 0 (~8.18 Hz) so the preview can scan into LFO/sub-audio
+// territory — useful for hearing the wavetable bank as a slow timbral
+// sweep rather than only as a pitched tone.
+constexpr int kMidiNoteMin = 0;
 constexpr int kMidiNoteMax = 96;
 constexpr int kMidiNoteDefault = 60;
 constexpr int kVolumeMax = 100;
