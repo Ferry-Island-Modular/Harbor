@@ -1,7 +1,6 @@
 #include "app/services/single_wav_service.h"
 
 #include <QThreadPool>
-
 #include <filesystem>
 
 #include "dsp/single_wav_generator.h"
@@ -41,13 +40,9 @@ void SingleWavService::Generate() {
         const std::filesystem::path output_path(out_dir.toStdString());
 
         fim::dsp::SingleWavGenerator generator;
+        // Qt auto-queues cross-thread signal emits onto the GUI thread.
         const bool ok = generator.Generate(input_path, output_path,
-                                           [this](int percent) {
-                                               // Cross-thread signal — Qt
-                                               // auto-queues this onto the
-                                               // GUI thread.
-                                               emit progressChanged(percent);
-                                           });
+                                           [this](int percent) { emit progressChanged(percent); });
 
         generating_.store(false, std::memory_order_release);
 
