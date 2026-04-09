@@ -15,6 +15,7 @@ namespace fim::ui {
 
 class AnyWavScreen;
 class LauncherScreen;
+class SerumWavScreen;
 
 // Top-level QMainWindow. Owns the RealtimeAudioEngine, the persistent
 // Settings instance, and the QStackedWidget router that swaps between
@@ -38,8 +39,10 @@ private:
     QStackedWidget* stack_ = nullptr;
     LauncherScreen* launcher_screen_ = nullptr;
     AnyWavScreen* any_wav_screen_ = nullptr;
+    SerumWavScreen* serum_wav_screen_ = nullptr;
     int launcher_index_ = -1;
     int any_wav_index_ = -1;
+    int serum_wav_index_ = -1;
 };
 
 }  // namespace fim::ui

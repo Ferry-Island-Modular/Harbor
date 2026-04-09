@@ -1,12 +1,12 @@
 #include "ui/main_window.h"
 
 #include <QMenuBar>
-#include <QMessageBox>
 #include <QStackedWidget>
 
 #include "engine/realtime_audio_engine.h"
 #include "ui/any_wav_screen.h"
 #include "ui/launcher_screen.h"
+#include "ui/serum_wav_screen.h"
 
 namespace fim::ui {
 
@@ -20,15 +20,18 @@ MainWindow::MainWindow(QWidget* parent)
 
     launcher_screen_ = new LauncherScreen(this);
     any_wav_screen_ = new AnyWavScreen(engine_.get(), &settings_, this);
+    serum_wav_screen_ = new SerumWavScreen(engine_.get(), &settings_, this);
 
     launcher_index_ = stack_->addWidget(launcher_screen_);
     any_wav_index_ = stack_->addWidget(any_wav_screen_);
+    serum_wav_index_ = stack_->addWidget(serum_wav_screen_);
 
     setCentralWidget(stack_);
 
     connect(launcher_screen_, &LauncherScreen::modeChosen, this,
             [this](LauncherScreen::Mode mode) { OnModeChosen(static_cast<int>(mode)); });
     connect(any_wav_screen_, &AnyWavScreen::backRequested, this, &MainWindow::OnBackToLauncher);
+    connect(serum_wav_screen_, &SerumWavScreen::backRequested, this, &MainWindow::OnBackToLauncher);
 
     BuildMenuBar();
 
@@ -47,8 +50,8 @@ void MainWindow::OnModeChosen(int mode) {
         any_wav_screen_->Reset();
         stack_->setCurrentIndex(any_wav_index_);
     } else if (m == LauncherScreen::Mode::kSerum) {
-        QMessageBox::information(this, "Serum mode",
-                                 "Serum mode UI is not yet implemented in Phase 2.");
+        serum_wav_screen_->Reset();
+        stack_->setCurrentIndex(serum_wav_index_);
     }
     // kThreeWavs is permanently disabled in the launcher.
 }
