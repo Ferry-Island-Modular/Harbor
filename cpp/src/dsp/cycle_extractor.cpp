@@ -43,16 +43,24 @@ std::vector<float> CycleExtractor::Extract(const std::vector<std::vector<float>>
         cycle[i] *= window_[i];
     }
 
-    // Step 5: normalize to peak 1.0 (or leave as zeros if silent).
+    // Step 5: normalize to peak 1.0 (or zero out if below the energy
+    // threshold). The threshold prevents two bad behaviors on audio files
+    // with fade-ins/fade-outs: (1) exactly-zero frames producing zeros
+    // (no change), and (2) near-zero frames with a tiny dither peak
+    // getting normalized up to full scale and sounding like amplified
+    // noise. Below the threshold we treat the cell as silent.
+    constexpr float kSilenceThreshold = 1e-4f;
     float peak = 0.0f;
     for (float s : cycle) {
         peak = std::max(peak, std::abs(s));
     }
-    if (peak > 0.0f) {
+    if (peak > kSilenceThreshold) {
         const float inv_peak = 1.0f / peak;
         for (float& s : cycle) {
             s *= inv_peak;
         }
+    } else {
+        std::fill(cycle.begin(), cycle.end(), 0.0f);
     }
 
     return cycle;

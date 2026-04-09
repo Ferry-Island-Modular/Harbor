@@ -71,6 +71,27 @@ TEST_CASE("CycleExtractor on a zero spectrum returns zeros without NaN", "[dsp][
     }
 }
 
+TEST_CASE("CycleExtractor returns silence for a near-zero spectrum (below threshold)",
+          "[dsp][cycle_extractor]") {
+    constexpr std::size_t kFft = 64;
+    constexpr std::size_t kTarget = 256;
+    fim::dsp::CycleExtractor extractor(kFft, kTarget);
+
+    // Build a spectrum with a single bin at magnitude 1e-7 — well below
+    // the 1e-4 threshold. The pre-Phase-3d behavior would normalize this
+    // up to peak=1.0 and produce amplified noise; the new behavior
+    // returns zeros.
+    std::vector<std::vector<float>> magnitude(kFft / 2 + 1, std::vector<float>(1, 0.0f));
+    std::vector<std::vector<float>> phase(kFft / 2 + 1, std::vector<float>(1, 0.0f));
+    magnitude[4][0] = 1e-7f;
+
+    const auto cycle = extractor.Extract(magnitude, phase, 0);
+    REQUIRE(cycle.size() == kTarget);
+    for (float s : cycle) {
+        REQUIRE(std::abs(s) < 1e-6f);
+    }
+}
+
 TEST_CASE("CycleExtractor produces a non-trivial waveform for a multi-bin spectrum",
           "[dsp][cycle_extractor]") {
     constexpr std::size_t kFft = 64;
