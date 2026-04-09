@@ -119,8 +119,12 @@ void ApplyHarmonicStretch(std::vector<std::vector<float>>& magnitude, float y_no
 }
 
 // Y3: smear. Softens spectral peaks by averaging each bin with its
-// neighbors, weighted by y_norm. At y_norm=0 this is identity; at y_norm=1
-// each bin is fully replaced by the average of its 5-bin neighborhood.
+// neighbors. The kernel width is modulated by y_norm — at y_norm=0 the
+// kernel is 1 bin (identity), at y_norm=1 the kernel is ~101 bins wide
+// (roughly 10% of a typical 1025-bin STFT spectrum, very smeary).
+//
+// Quadratic ramp on kernel_half so low y stays subtle and high y goes
+// aggressive, per the project's "err toward extreme" design principle.
 //
 // Bespoke implementation — NOT Vital's running-average-with-(i+0.25)/i
 // scaling. That version lives in SerumMorpher for Serum mode. Both are
@@ -133,15 +137,20 @@ void ApplySmear(std::vector<std::vector<float>>& magnitude, float y_norm) {
     }
     const std::size_t num_frames = magnitude[0].size();
 
-    // Per frame: compute a 5-tap moving average of the magnitude column,
-    // then lerp from the original into the smoothed version by y_norm.
+    // Quadratic ramp: kernel_half = round(y_norm^2 * 50). At y_norm=0
+    // this is 0 (identity). At y_norm=0.5 it's ~13 (27-wide kernel).
+    // At y_norm=1 it's 50 (101-wide kernel).
+    const int kernel_half = static_cast<int>(std::round(y_norm * y_norm * 50.0f));
+    if (kernel_half == 0) {
+        return;  // Identity.
+    }
+
     std::vector<float> smoothed(num_bins, 0.0f);
     for (std::size_t f = 0; f < num_frames; ++f) {
-        // 5-tap moving average with edge clamping.
         for (std::size_t k = 0; k < num_bins; ++k) {
             float sum = 0.0f;
             int count = 0;
-            for (int offset = -2; offset <= 2; ++offset) {
+            for (int offset = -kernel_half; offset <= kernel_half; ++offset) {
                 const long idx = static_cast<long>(k) + offset;
                 if (idx >= 0 && idx < static_cast<long>(num_bins)) {
                     sum += magnitude[static_cast<std::size_t>(idx)][f];
@@ -150,9 +159,8 @@ void ApplySmear(std::vector<std::vector<float>>& magnitude, float y_norm) {
             }
             smoothed[k] = sum / static_cast<float>(count);
         }
-        // Lerp original → smoothed by y_norm.
         for (std::size_t k = 0; k < num_bins; ++k) {
-            magnitude[k][f] = magnitude[k][f] * (1.0f - y_norm) + smoothed[k] * y_norm;
+            magnitude[k][f] = smoothed[k];
         }
     }
 }
