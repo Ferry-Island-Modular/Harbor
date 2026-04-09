@@ -40,11 +40,22 @@ void ZCrush(std::vector<float>& cycle, int bit_depth, int sample_hold) {
 
 ZCrushParams ZCrushAmount(int z) {
     // z=0: bit_depth=16, hold=1 (passthrough)
-    // z=7: bit_depth=3, hold=8 (maximal crush)
+    // z=7: bit_depth=1, hold=128 (no half-measures lo-fi obliteration)
+    //
+    // bit_depth ramps linearly 16 -> 1. At z=7 we get 1-bit quantization
+    // which produces a near-square waveform (values snap to -1, 0, or +1
+    // due to our rounding convention).
+    //
+    // sample_hold ramps exponentially 1 -> 128 via 2^(t*7). Exponential
+    // rather than linear keeps low z values subtle (hold=2..6 barely
+    // audible) while pushing high z values into aggressive sample-rate-
+    // reduction territory. At z=7, hold=128 on an 8192-sample oversampled
+    // cycle means only 64 distinct held values per cycle — SID-chip
+    // territory.
     const int clamped = std::max(0, std::min(7, z));
     const float t = static_cast<float>(clamped) / 7.0f;
-    const int bit_depth = static_cast<int>(std::round(16.0f - t * 13.0f));
-    const int sample_hold = 1 + static_cast<int>(std::round(t * 7.0f));
+    const int bit_depth = static_cast<int>(std::round(16.0f - t * 15.0f));
+    const int sample_hold = static_cast<int>(std::round(std::pow(2.0f, t * 7.0f)));
     return ZCrushParams{bit_depth, sample_hold};
 }
 
