@@ -11,6 +11,7 @@ add_executable(fim-tests
     dsp_real_fft_test.cpp
     dsp_stft_test.cpp
     dsp_fft_resampler_test.cpp
+    dsp_spectral_modifier_test.cpp
     ../src/engine/single_header_impls.cpp
     ../src/engine/wav_loader.cpp
     ../src/engine/wavetable_bank.cpp
@@ -23,6 +24,7 @@ add_executable(fim-tests
     ../src/dsp/real_fft.cpp
     ../src/dsp/stft.cpp
     ../src/dsp/fft_resampler.cpp
+    ../src/dsp/spectral_modifier.cpp
 )
 
 target_include_directories(fim-tests PRIVATE
