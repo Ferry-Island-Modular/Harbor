@@ -224,6 +224,7 @@ qt_add_executable(fim-config-tool
     src/app/services/single_wav_service.cpp
     src/dsp/window.cpp
     src/dsp/wav_loader.cpp
+    src/dsp/resample.cpp
     src/dsp/real_fft.cpp
     src/dsp/stft.cpp
     src/dsp/fft_resampler.cpp

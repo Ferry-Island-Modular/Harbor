@@ -15,6 +15,7 @@ add_executable(fim-tests
     dsp_post_effects_test.cpp
     dsp_serum_loader_test.cpp
     dsp_serum_morpher_test.cpp
+    dsp_resample_test.cpp
     ../src/engine/single_header_impls.cpp
     ../src/engine/wav_loader.cpp
     ../src/engine/wavetable_bank.cpp
@@ -23,6 +24,7 @@ add_executable(fim-tests
     ../src/app/settings.cpp
     ../src/dsp/window.cpp
     ../src/dsp/wav_loader.cpp
+    ../src/dsp/resample.cpp
     ../src/dsp/real_fft.cpp
     ../src/dsp/stft.cpp
     ../src/dsp/fft_resampler.cpp
