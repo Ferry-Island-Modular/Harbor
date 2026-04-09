@@ -228,6 +228,7 @@ qt_add_executable(fim-config-tool
     src/dsp/fft_resampler.cpp
     src/dsp/spectral_modifier.cpp
     src/dsp/cycle_extractor.cpp
+    src/dsp/single_wav_generator.cpp
     src/engine/engine_smoke.cpp
     src/engine/single_header_impls.cpp
     src/engine/wav_loader.cpp
