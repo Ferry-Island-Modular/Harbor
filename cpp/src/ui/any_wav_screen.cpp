@@ -60,6 +60,9 @@ AnyWavScreen::AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, fim::app::S
     // Construct the service BEFORE calling FinishInit — the base class's
     // FinishInit queries Service() and wires its signals.
     service_ = new fim::app::SingleWavService(this);
+    service_->SetPreviewCacheDirectory(SingleWavOutputDir());
+    // Temporary: user export dir is set equal to the cache. Task 4 will
+    // source this from Settings::OutputDir() and split them apart.
     service_->SetOutputDirectory(SingleWavOutputDir());
     service_->SetYMode(YModeFromIndex(settings->YMorph()));
     service_->SetZMode(ZModeFromIndex(settings->ZMorph()));

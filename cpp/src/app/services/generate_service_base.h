@@ -37,6 +37,13 @@ public:
     void SetOutputDirectory(const QString& path);
     QString OutputDirectory() const;
 
+    // The preview cache is where the always-2048-sample bank is written.
+    // The audio engine loads from here. This is distinct from the user-
+    // facing export directory (SetOutputDirectory) which may live anywhere
+    // and may receive a downsampled copy of the bank.
+    void SetPreviewCacheDirectory(const QString& path);
+    QString PreviewCacheDirectory() const;
+
     bool IsGenerating() const;
 
 public slots:
@@ -72,6 +79,7 @@ protected:
 private:
     QString input_file_;
     QString output_directory_;
+    QString preview_cache_directory_;
     std::atomic<bool> generating_{false};
 };
 

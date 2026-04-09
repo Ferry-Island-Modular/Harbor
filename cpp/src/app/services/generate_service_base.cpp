@@ -23,6 +23,14 @@ QString GenerateServiceBase::OutputDirectory() const {
     return output_directory_;
 }
 
+void GenerateServiceBase::SetPreviewCacheDirectory(const QString& path) {
+    preview_cache_directory_ = path;
+}
+
+QString GenerateServiceBase::PreviewCacheDirectory() const {
+    return preview_cache_directory_;
+}
+
 bool GenerateServiceBase::IsGenerating() const {
     return generating_.load(std::memory_order_relaxed);
 }
@@ -33,16 +41,22 @@ void GenerateServiceBase::Generate() {
     }
 
     const QString in_file = input_file_;
-    const QString out_dir = output_directory_;
+    const QString cache_dir = preview_cache_directory_;
+    // user_export_dir is captured for Task 3/4 — currently unused inside
+    // the worker. The DSP cores write to the preview cache; a follow-up
+    // step will copy/decimate from cache to user_export_dir.
+    const QString user_export_dir = output_directory_;
 
-    QThreadPool::globalInstance()->start([this, in_file, out_dir]() {
+    QThreadPool::globalInstance()->start([this, in_file, cache_dir, user_export_dir]() {
         const std::filesystem::path input_path(in_file.toStdString());
-        const std::filesystem::path output_path(out_dir.toStdString());
+        const std::filesystem::path cache_path(cache_dir.toStdString());
 
-        const bool ok = DoGenerate(input_path, output_path, [this](int percent) {
+        const bool ok = DoGenerate(input_path, cache_path, [this](int percent) {
             // Qt auto-queues cross-thread signal emits onto the GUI thread.
             emit progressChanged(percent);
         });
+
+        (void)user_export_dir;
 
         generating_.store(false, std::memory_order_release);
 

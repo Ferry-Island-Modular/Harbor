@@ -54,6 +54,9 @@ SerumWavScreen::SerumWavScreen(fim::engine::RealtimeAudioEngine* engine,
     // Construct the service BEFORE calling FinishInit — the base class's
     // FinishInit queries Service() and wires its signals.
     service_ = new fim::app::SerumWavService(this);
+    service_->SetPreviewCacheDirectory(SerumOutputDir());
+    // Temporary: user export dir is set equal to the cache. Task 4 will
+    // source this from Settings::OutputDir() and split them apart.
     service_->SetOutputDirectory(SerumOutputDir());
     service_->SetYMode(SerumModeFromIndex(settings->SerumYMorph()));
     service_->SetZMode(SerumModeFromIndex(settings->SerumZMorph()));
