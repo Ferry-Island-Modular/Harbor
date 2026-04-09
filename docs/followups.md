@@ -2,6 +2,10 @@
 
 Things noticed during implementation that aren't blocking but should be revisited later. Append to this list as new ones come up; remove (with a commit reference) when fixed.
 
+## Phase 4
+
+- **Frame resampling — offer sample-domain as an alternative to the default frequency-domain approach.** Phase 4a implements Serum-mode frame resampling in the frequency domain (interpolate source frame FFTs, take phases from the nearest source). This is cleaner for non-smoothly-varying wavetables but deviates from Python's sample-domain linear interpolation. A future revision could expose both as a user-selectable option in the Serum screen — the two produce audibly different results for chopped/percussive Serum files and the user might prefer either. ~50 LOC to add the alternative code path.
+
 ## Phase 2
 
 - **Serum mode is fully deferred.** The launcher's Serum card opens a `QMessageBox` saying "not yet implemented." Designs are pending; revisit when they land.
