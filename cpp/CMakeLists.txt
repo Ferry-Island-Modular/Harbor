@@ -222,6 +222,7 @@ qt_add_executable(fim-config-tool
     src/app/services/generate_service_base.cpp
     src/app/services/serum_wav_service.cpp
     src/app/services/three_wav_service.cpp
+    src/app/services/export_writer.cpp
     src/app/services/single_wav_service.cpp
     src/dsp/window.cpp
     src/dsp/wav_loader.cpp
