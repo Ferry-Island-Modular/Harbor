@@ -37,9 +37,9 @@ LauncherScreen::LauncherScreen(QWidget* parent) : QWidget(parent) {
     three_wavs_card_ = new CardButton("Use three .wav files to create your wavetable bank",
                                       CardButton::State::kDefault, this);
 
-    cards_row->addWidget(any_wav_card_);
-    cards_row->addWidget(serum_card_);
-    cards_row->addWidget(three_wavs_card_);
+    cards_row->addWidget(any_wav_card_, /*stretch=*/1);
+    cards_row->addWidget(serum_card_, /*stretch=*/1);
+    cards_row->addWidget(three_wavs_card_, /*stretch=*/1);
     root_layout->addLayout(cards_row);
     root_layout->addStretch();
 

@@ -68,30 +68,42 @@ QWidget* ThreeWavScreen::BuildFileSetPageContent(QWidget* parent) {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(16);
 
-    // 3 file slots, each mapped to an axis. Each slot: axis title,
-    // filename label + clear button row, drop widget.
+    // 3 file slots in a horizontal row, one column per axis. Each
+    // column has its own title, filename label + clear button row, and
+    // drop widget. Stretch=1 on each column gives them equal width.
+    auto* columns_row = new QHBoxLayout();
+    columns_row->setSpacing(16);
+
     static const QStringList kSlotTitles{"X axis — file 1", "Y axis — file 2", "Z axis — file 3"};
     for (int i = 0; i < 3; ++i) {
-        auto* slot_title = new QLabel(kSlotTitles[i], content);
+        auto* column = new QWidget(content);
+        auto* column_layout = new QVBoxLayout(column);
+        column_layout->setContentsMargins(0, 0, 0, 0);
+        column_layout->setSpacing(8);
+
+        auto* slot_title = new QLabel(kSlotTitles[i], column);
         slot_title->setObjectName("anyWavAxisLabel");
-        layout->addWidget(slot_title);
+        column_layout->addWidget(slot_title);
 
         auto* file_row = new QHBoxLayout();
-        filename_labels_[i] = new QLabel("(no file)", content);
+        filename_labels_[i] = new QLabel("(no file)", column);
         filename_labels_[i]->setObjectName("anyWavFilename");
-        auto* clear_button = new QPushButton("Clear", content);
+        auto* clear_button = new QPushButton("Clear", column);
         clear_button->setObjectName("clearButton");
-        file_row->addWidget(filename_labels_[i]);
-        file_row->addStretch();
+        file_row->addWidget(filename_labels_[i], /*stretch=*/1);
         file_row->addWidget(clear_button);
-        layout->addLayout(file_row);
+        column_layout->addLayout(file_row);
         connect(clear_button, &QPushButton::clicked, this, [this, i]() { OnSlotClearClicked(i); });
 
-        drop_widgets_[i] = new FileDropWidget(content);
-        layout->addWidget(drop_widgets_[i]);
+        drop_widgets_[i] = new FileDropWidget(column);
+        column_layout->addWidget(drop_widgets_[i], /*stretch=*/1);
         connect(drop_widgets_[i], &FileDropWidget::fileDropped, this,
                 [this, i](const QString& path) { OnSlotFileDropped(i, path); });
+
+        columns_row->addWidget(column, /*stretch=*/1);
     }
+
+    layout->addLayout(columns_row, /*stretch=*/1);
 
     auto* generate_row = new QHBoxLayout();
     generate_button_ = new QPushButton("Generate wavetable bank", content);

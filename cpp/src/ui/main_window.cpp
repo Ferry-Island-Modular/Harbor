@@ -15,7 +15,8 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent),
       engine_(std::make_unique<fim::engine::RealtimeAudioEngine>(48000.0f, 512)) {
     setWindowTitle("Harbor (beta v" HARBOR_VERSION ")");
-    resize(1000, 480);
+    resize(1100, 560);
+    setMinimumSize(960, 520);
 
     stack_ = new QStackedWidget(this);
 
