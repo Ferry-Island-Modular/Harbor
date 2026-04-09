@@ -1,5 +1,8 @@
 #include "app/settings.h"
 
+#include <QDir>
+#include <QStandardPaths>
+
 namespace fim::app {
 
 namespace {
@@ -17,7 +20,10 @@ constexpr const char* kKeySerumZMorph = "serum_z_morph";
 }  // namespace
 
 std::string Settings::OutputDir() const {
-    return backing_.value(kKeyOutputDir, "output_waves").toString().toStdString();
+    const QString default_dir =
+        QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
+            .filePath("Harbor");
+    return backing_.value(kKeyOutputDir, default_dir).toString().toStdString();
 }
 
 void Settings::SetOutputDir(const std::string& path) {

@@ -55,9 +55,10 @@ SerumWavScreen::SerumWavScreen(fim::engine::RealtimeAudioEngine* engine,
     // FinishInit queries Service() and wires its signals.
     service_ = new fim::app::SerumWavService(this);
     service_->SetPreviewCacheDirectory(SerumOutputDir());
-    // Temporary: user export dir is set equal to the cache. Task 4 will
-    // source this from Settings::OutputDir() and split them apart.
-    service_->SetOutputDirectory(SerumOutputDir());
+    const QString user_dir =
+        QDir(QString::fromStdString(settings->OutputDir())).filePath("serum_wav");
+    service_->SetOutputDirectory(user_dir);
+    service_->SetSamplesPerFrame(settings->SamplesPerFrame());
     service_->SetYMode(SerumModeFromIndex(settings->SerumYMorph()));
     service_->SetZMode(SerumModeFromIndex(settings->SerumZMorph()));
 

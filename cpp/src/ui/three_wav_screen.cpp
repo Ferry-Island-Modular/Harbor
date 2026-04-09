@@ -32,9 +32,10 @@ ThreeWavScreen::ThreeWavScreen(fim::engine::RealtimeAudioEngine* engine,
 
     service_ = new fim::app::ThreeWavService(this);
     service_->SetPreviewCacheDirectory(ThreeWavOutputDir());
-    // Temporary: user export dir is set equal to the cache. Task 4 will
-    // source this from Settings::OutputDir() and split them apart.
-    service_->SetOutputDirectory(ThreeWavOutputDir());
+    const QString user_dir =
+        QDir(QString::fromStdString(settings->OutputDir())).filePath("three_wav");
+    service_->SetOutputDirectory(user_dir);
+    service_->SetSamplesPerFrame(settings->SamplesPerFrame());
 
     FinishInit();
 

@@ -44,6 +44,14 @@ public:
     void SetPreviewCacheDirectory(const QString& path);
     QString PreviewCacheDirectory() const;
 
+    // Target samples-per-cycle for the user-export bank. Defaults to 2048
+    // (Four Seas). When set to 256 (Waveedit), the ExportWriter
+    // downsamples each cycle from the always-2048 preview cache before
+    // writing to the user export directory. The preview cache is
+    // unaffected; the audio engine always loads 2048-sample cycles.
+    void SetSamplesPerFrame(int samples);
+    int SamplesPerFrame() const;
+
     bool IsGenerating() const;
 
 public slots:
@@ -80,6 +88,7 @@ private:
     QString input_file_;
     QString output_directory_;
     QString preview_cache_directory_;
+    int samples_per_frame_ = 2048;
     std::atomic<bool> generating_{false};
 };
 
