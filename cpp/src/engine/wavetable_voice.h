@@ -54,7 +54,8 @@ private:
 
     // Bank pointer. Use std::atomic_load / std::atomic_store to access (free-
     // function form for shared_ptr — works in C++17, deprecated in C++20 but
-    // still functional).
+    // still functional). The C++20 std::atomic<std::shared_ptr<T>> partial
+    // specialization (P0718R2) is not yet available in Apple libc++.
     std::shared_ptr<const WavetableBank> bank_;
 
     // Pointer to the bank we last initialized the oscillator with. Only

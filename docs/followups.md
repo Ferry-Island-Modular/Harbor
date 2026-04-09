@@ -14,11 +14,15 @@ Things noticed during implementation that aren't blocking but should be revisite
 - **`engine_->LoadBank()` runs on the GUI thread.** Currently called from `AnyWavScreen::SetState(kDonePreviewAvailable)` after generation finishes. Fast for typical banks (~2MB total) — move to a `QRunnable` only if it ever stalls the UI noticeably.
 - **Styling needs manual tuning.** The QSS port is functional but visually wonky compared to the design SVGs — paddings, spacings, color choices need adjustment. Will be done iteratively against the designs.
 
+## Preview widget
+
+- **Add an oscilloscope and spectrogram view to the preview widget.** Inspired by iZotope RX's combined waveform/spectrogram display. The oscilloscope would show the live output buffer (the same samples being sent to the audio device), and the spectrogram would show a rolling FFT of the same. Helps users see what the wavetable bank is actually doing as they sweep the X/Y/Z sliders, not just hear it. Likely a custom QWidget with a per-frame `QPainter::drawPolyline` for the scope and a scrolling QImage for the spectrogram, fed by an audio-thread → GUI-thread sample tap (lock-free ring buffer).
+
 ## Audio engine
 
 - **Aggressive slider scans still leak some zipper noise** — `WavetableVoice` applies a per-sample one-pole smoother (`kParamSmoothingCoeff = 0.005f`, ~4ms time constant) to X/Y/Z and frequency. Slow drags are clean, but slamming a slider back and forth can still produce audible artifacts because the parameter changes happen faster than the smoothing can mask. Possible fixes if it ever bothers users in real use: tune the coefficient (try `0.002` for more masking at the cost of sluggishness), crossfade between two voice instances at audio-block boundaries, or apply adaptive smoothing that locks in when slider velocity is high. Phase 1 ships with the current setting because the artifact only appears in torture-test scenarios.
-- **`std::atomic_load` / `std::atomic_store` for `std::shared_ptr` in `WavetableVoice`** is deprecated in C++20 (we're on C++20 since `cf58197`). Migrate to `std::atomic<std::shared_ptr<T>>` when convenient. The deprecated form still compiles silently with our current flags so this is purely cleanup.
-- **`WavetableEngine` (offline rendering) was not vendored from `bindings.cpp@8d36c15`** — Phase 1 only needed the realtime path. Revisit during Phase 3 if we want offline rendering for DSP comparison testing against the Python reference.
+- **`std::atomic_load` / `std::atomic_store` for `std::shared_ptr` in `WavetableVoice`** is deprecated in C++20. The intended migration target — `std::atomic<std::shared_ptr<T>>` (P0718R2) — is not yet available in Apple libc++ (libc++ on the macOS 26.2 SDK still requires `T` to be trivially copyable). Revisit when libc++ ships the partial specialization, or switch to libstdc++ (which already has it). The deprecated free-function form still compiles silently with our current flags so this is purely cleanup.
+- **`WavetableEngine` (offline rendering) was not vendored from `bindings.cpp@8d36c15`** — Phase 1 only needed the realtime path. Revisit if we want offline rendering for DSP comparison testing against the Python reference.
 
 ## Build / CI
 
