@@ -23,6 +23,13 @@ QString SingleWavService::OutputDirectory() const {
     return output_directory_;
 }
 
+void SingleWavService::SetYMode(fim::dsp::YMode mode) {
+    options_.y_mode = mode;
+}
+void SingleWavService::SetZMode(fim::dsp::ZMode mode) {
+    options_.z_mode = mode;
+}
+
 bool SingleWavService::IsGenerating() const {
     return generating_.load(std::memory_order_relaxed);
 }
@@ -34,14 +41,15 @@ void SingleWavService::Generate() {
 
     const QString in_file = input_file_;
     const QString out_dir = output_directory_;
+    const fim::dsp::GenerateOptions opts = options_;
 
-    QThreadPool::globalInstance()->start([this, in_file, out_dir]() {
+    QThreadPool::globalInstance()->start([this, in_file, out_dir, opts]() {
         const std::filesystem::path input_path(in_file.toStdString());
         const std::filesystem::path output_path(out_dir.toStdString());
 
         fim::dsp::SingleWavGenerator generator;
         // Qt auto-queues cross-thread signal emits onto the GUI thread.
-        const bool ok = generator.Generate(input_path, output_path,
+        const bool ok = generator.Generate(input_path, output_path, opts,
                                            [this](int percent) { emit progressChanged(percent); });
 
         generating_.store(false, std::memory_order_release);

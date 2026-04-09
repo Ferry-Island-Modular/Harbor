@@ -4,13 +4,15 @@
 #include <QString>
 #include <atomic>
 
+#include "dsp/generate_options.h"
+
 namespace fim::app {
 
-// Phase 2 orchestration of single-wav generation. Holds the chosen input
-// file, exposes a Generate() slot that queues a QRunnable on the global
-// thread pool, and emits Qt signals as the work progresses. The actual
-// "DSP" in Phase 2 is StubBankWriter::WriteSineBank — Phase 3 swaps in real
-// audio resynthesis without changing this class's API.
+// Phase 2/3 orchestration of single-wav generation. Holds the chosen
+// input file and the selected morph options, queues the generation work
+// on QThreadPool, and emits Qt signals as the work progresses. Phase 3b
+// swapped in real DSP via fim::dsp::SingleWavGenerator; Phase 3d added
+// Y/Z mode selection.
 class SingleWavService : public QObject {
     Q_OBJECT
 
@@ -18,27 +20,23 @@ public:
     explicit SingleWavService(QObject* parent = nullptr);
     ~SingleWavService() override = default;
 
-    // Sets the input audio file path. No validation here — just stores it.
     void SetInputFile(const QString& path);
     QString InputFile() const;
 
-    // Sets the output directory where 1.wav..8.wav will land.
     void SetOutputDirectory(const QString& path);
     QString OutputDirectory() const;
 
-    // True if Generate() has been called and is still running.
+    // Configure the morph modes used by the next Generate() call. These
+    // persist across Generate() calls until explicitly changed.
+    void SetYMode(fim::dsp::YMode mode);
+    void SetZMode(fim::dsp::ZMode mode);
+
     bool IsGenerating() const;
 
 public slots:
-    // Queues the generation work on QThreadPool::globalInstance(). Returns
-    // immediately. Progress and completion are reported via signals.
-    // Calling Generate() while already generating is a no-op.
     void Generate();
 
 signals:
-    // Emitted from the worker thread. Cross-thread signal/slot connections
-    // become Qt::QueuedConnection automatically when the receiver lives in a
-    // different thread (the GUI thread, for AnyWavScreen).
     void progressChanged(int percent);
     void generationFinished();
     void generationFailed(const QString& error);
@@ -46,6 +44,7 @@ signals:
 private:
     QString input_file_;
     QString output_directory_;
+    fim::dsp::GenerateOptions options_;
     std::atomic<bool> generating_{false};
 };
 
