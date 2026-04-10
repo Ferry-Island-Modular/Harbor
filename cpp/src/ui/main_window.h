@@ -3,6 +3,8 @@
 #include <QMainWindow>
 #include <memory>
 
+class QActionGroup;
+
 #include "app/settings.h"
 
 class QStackedWidget;
@@ -32,10 +34,12 @@ private slots:
     void OnModeChosen(int mode);  // takes int because of LauncherScreen::Mode enum
     void OnBackToLauncher();
     void OnChooseOutputDirectory();
+    void OnTargetHardwareChanged();
 
 private:
     void BuildMenuBar();
 
+    QActionGroup* target_hardware_group_ = nullptr;
     std::unique_ptr<fim::engine::RealtimeAudioEngine> engine_;
     fim::app::Settings settings_;
     QStackedWidget* stack_ = nullptr;

@@ -1,6 +1,7 @@
 #include "ui/main_window.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QStackedWidget>
@@ -80,8 +81,31 @@ void MainWindow::BuildMenuBar() {
     file_menu->addSeparator();
     file_menu->addAction("Quit", QKeySequence::Quit, this, &QWidget::close);
 
-    // Export menu (Task 6 fills this in)
-    menuBar()->addMenu("&Export");
+    auto* export_menu = menuBar()->addMenu("&Export");
+    auto* target_menu = export_menu->addMenu("Target hardware");
+    target_hardware_group_ = new QActionGroup(this);
+    target_hardware_group_->setExclusive(true);
+
+    auto* four_seas_action = target_menu->addAction("Four Seas (2048 samples)");
+    four_seas_action->setCheckable(true);
+    four_seas_action->setData(2048);
+    target_hardware_group_->addAction(four_seas_action);
+
+    auto* waveedit_action = target_menu->addAction("Waveedit (256 samples)");
+    waveedit_action->setCheckable(true);
+    waveedit_action->setData(256);
+    target_hardware_group_->addAction(waveedit_action);
+
+    // Restore the persisted selection.
+    const int current_spf = settings_.SamplesPerFrame();
+    if (current_spf == 256) {
+        waveedit_action->setChecked(true);
+    } else {
+        four_seas_action->setChecked(true);
+    }
+
+    connect(target_hardware_group_, &QActionGroup::triggered, this,
+            &MainWindow::OnTargetHardwareChanged);
 
     // Help menu (Task 7 fills this in)
     menuBar()->addMenu("&Help");
@@ -96,6 +120,18 @@ void MainWindow::OnChooseOutputDirectory() {
         return;  // user cancelled
     }
     settings_.SetOutputDir(picked.toStdString());
+    any_wav_screen_->RefreshOutputDirFromSettings();
+    serum_wav_screen_->RefreshOutputDirFromSettings();
+    three_wav_screen_->RefreshOutputDirFromSettings();
+}
+
+void MainWindow::OnTargetHardwareChanged() {
+    auto* checked = target_hardware_group_->checkedAction();
+    if (!checked) {
+        return;
+    }
+    const int samples = checked->data().toInt();
+    settings_.SetSamplesPerFrame(samples);
     any_wav_screen_->RefreshOutputDirFromSettings();
     serum_wav_screen_->RefreshOutputDirFromSettings();
     three_wav_screen_->RefreshOutputDirFromSettings();
