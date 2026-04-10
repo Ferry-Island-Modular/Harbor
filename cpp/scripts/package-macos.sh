@@ -103,6 +103,7 @@ STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
 cp -R "$APP_PATH" "$STAGE_DIR/"
 ln -s /Applications "$STAGE_DIR/Applications"
+cp "${REPO_ROOT}/cpp/resources/dist/Read Me First.rtf" "$STAGE_DIR/"
 
 echo "Creating $DMG_PATH..."
 hdiutil create \
