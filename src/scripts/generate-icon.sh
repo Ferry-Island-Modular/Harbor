@@ -14,7 +14,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ICON_DIR="${REPO_ROOT}/cpp/resources/icon"
+ICON_DIR="${REPO_ROOT}/src/resources/icon"
 SOURCE_PNG="${ICON_DIR}/harbor-source.png"
 OUTPUT_ICNS="${ICON_DIR}/Harbor.icns"
 ICONSET_DIR="${ICON_DIR}/Harbor.iconset"

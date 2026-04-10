@@ -10,15 +10,15 @@
 # the .dmg. See README in this directory for the tester instructions.
 #
 # Usage:
-#   cpp/scripts/package-macos.sh                # builds, packages, signs
-#   cpp/scripts/package-macos.sh --skip-build   # skip cmake --build step
+#   src/scripts/package-macos.sh                # builds, packages, signs
+#   src/scripts/package-macos.sh --skip-build   # skip cmake --build step
 #
-# Output: cpp/build/dist/Harbor-<version>.dmg
+# Output: src/build/dist/Harbor-<version>.dmg
 #
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-BUILD_DIR="${REPO_ROOT}/cpp/build"
+BUILD_DIR="${REPO_ROOT}/src/build"
 APP_NAME="Harbor.app"
 APP_PATH="${BUILD_DIR}/${APP_NAME}"
 DIST_DIR="${BUILD_DIR}/dist"
@@ -103,7 +103,7 @@ STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
 cp -R "$APP_PATH" "$STAGE_DIR/"
 ln -s /Applications "$STAGE_DIR/Applications"
-cp "${REPO_ROOT}/cpp/resources/dist/Read Me First.rtf" "$STAGE_DIR/"
+cp "${REPO_ROOT}/src/resources/dist/Read Me First.rtf" "$STAGE_DIR/"
 
 echo "Creating $DMG_PATH..."
 hdiutil create \

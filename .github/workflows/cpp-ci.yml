@@ -2,14 +2,14 @@ name: cpp-ci
 
 on:
   push:
-    branches: [cpp-qt-rewrite]
+    branches: [master, cpp-qt-rewrite]
     paths:
-      - 'cpp/**'
+      - 'src/**'
       - '.github/workflows/cpp-ci.yml'
   pull_request:
-    branches: [cpp-qt-rewrite]
+    branches: [master, cpp-qt-rewrite]
     paths:
-      - 'cpp/**'
+      - 'src/**'
       - '.github/workflows/cpp-ci.yml'
   workflow_dispatch:
 
@@ -27,7 +27,7 @@ jobs:
           sudo apt-get install -y clang-format
 
       - name: Check formatting
-        working-directory: cpp
+        working-directory: src
         run: |
           find src tests -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) \
             -print0 | xargs -0 clang-format --dry-run --Werror
@@ -90,30 +90,30 @@ jobs:
 
       - name: Configure (Unix)
         if: runner.os != 'Windows'
-        working-directory: cpp
+        working-directory: src
         run: cmake -B build -G Ninja
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
-        working-directory: cpp
+        working-directory: src
         run: cmake -B build -A x64
 
       - name: Build (Unix)
         if: runner.os != 'Windows'
-        working-directory: cpp
+        working-directory: src
         run: cmake --build build --parallel
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
-        working-directory: cpp
+        working-directory: src
         run: cmake --build build --parallel --config Release
 
       - name: Test (Unix)
         if: runner.os != 'Windows'
-        working-directory: cpp
+        working-directory: src
         run: ctest --test-dir build --output-on-failure
 
       - name: Test (Windows)
         if: runner.os == 'Windows'
-        working-directory: cpp
+        working-directory: src
         run: ctest --test-dir build --output-on-failure -C Release

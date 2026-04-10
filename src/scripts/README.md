@@ -14,13 +14,13 @@ developer" message — testers need the workaround below.
 
 ```bash
 # Build + package (run from repo root)
-cpp/scripts/package-macos.sh
+src/scripts/package-macos.sh
 
-# Skip the cmake build step (use existing cpp/build/Harbor.app)
-cpp/scripts/package-macos.sh --skip-build
+# Skip the cmake build step (use existing src/build/Harbor.app)
+src/scripts/package-macos.sh --skip-build
 ```
 
-Output: `cpp/build/dist/FIM-Config-Tool-<git-version>.dmg`
+Output: `src/build/dist/FIM-Config-Tool-<git-version>.dmg`
 
 ### Tester instructions
 

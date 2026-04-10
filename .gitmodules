@@ -1,3 +1,3 @@
-[submodule "cpp/third_party/Four-Seas"]
-	path = cpp/third_party/Four-Seas
+[submodule "src/third_party/Four-Seas"]
+	path = src/third_party/Four-Seas
 	url = https://github.com/Ferry-Island-Modular/Four-Seas.git

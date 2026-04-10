@@ -1,55 +1,38 @@
-# FIM Config Tool
+# Harbor
 
-PySide6 desktop application for generating wavetables from audio files using spectral resynthesis.
+A desktop tool for generating wavetable banks for Ferry Island Modular hardware (Four Seas) and other wavetable synth hosts (Waveedit / Synthesis Technology).
 
-## Development
+Three input modes:
 
-### Running
+- **Single .wav** — analyze any audio file and morph its spectrum across the X / Y / Z axes
+- **Serum .wav** — convert a Serum wavetable into an 8 x 64 cell bank
+- **Three .wavs** — blend three audio files, one per axis, via cross-synthesis
 
-```bash
-uv run python src/config_tool/main.py
-```
+The output is 8 WAV files (one per Z page), each containing 64 single-cycle waveforms ready to load into a wavetable oscillator.
 
-### Styling (SCSS → QSS)
+## Status
 
-Styles are written in `src/config_tool/input.scss` and compiled to `app.qss`:
+Beta. macOS Apple Silicon only for distribution today; the source builds on Linux and Windows via CI.
 
-```bash
-# One-time compile
-npx sass src/config_tool/input.scss src/config_tool/app.qss --no-source-map --style=expanded
-
-# Watch mode (auto-recompile on changes)
-npx sass src/config_tool/input.scss src/config_tool/app.qss --no-source-map --style=expanded --watch
-```
-
-### Assets & Resources
-
-Assets (icons, stylesheets) are embedded using Qt Resource System:
-
-1. Add new assets to `src/config_tool/assets.qrc`
-2. Recompile: `cd src/config_tool && uv run pyside6-rcc assets.qrc -o assets_rc.py`
-3. Use in code: `QIcon(":/assets/icon.svg")` or `QFile(":/app.qss")`
-
-## Building & Distribution
-
-### macOS
+## Building
 
 ```bash
-# Build .app bundle
-./build.sh
-
-# Create distributable DMG
-./create_dmg.sh
-
-# Output: dist/FIM-Config-Tool-0.1.0.dmg
+git submodule update --init --recursive
+cd src
+cmake -G Ninja -B build
+cmake --build build
+open build/Harbor.app
 ```
 
-### Windows/Linux
+See [`src/README.md`](src/README.md) for more details.
 
-Build on target platform using PyInstaller:
+## Packaging for distribution
 
 ```bash
-uv run pyinstaller "FIM Config Tool.spec" --noconfirm
+src/scripts/package-macos.sh
+# Output: src/build/dist/Harbor-<version>.dmg
 ```
 
-See `BUILD.md` for detailed build instructions and troubleshooting.
+## License
+
+MIT — see [LICENSE](LICENSE).
