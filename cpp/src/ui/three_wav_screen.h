@@ -37,6 +37,9 @@ public:
     // Override Reset to clear all 3 slots and stay in kFileSet.
     void Reset() override;
 
+public slots:
+    void RefreshOutputDirFromSettings();
+
 protected:
     QString ModeTitle() const override;
     QWidget* BuildEmptyPageContent(QWidget* parent) override;

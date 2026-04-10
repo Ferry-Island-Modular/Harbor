@@ -24,6 +24,9 @@ public:
     SerumWavScreen(fim::engine::RealtimeAudioEngine* engine, fim::app::Settings* settings,
                    QWidget* parent = nullptr);
 
+public slots:
+    void RefreshOutputDirFromSettings();
+
 protected:
     QString ModeTitle() const override;
     QWidget* BuildEmptyPageContent(QWidget* parent) override;

@@ -24,6 +24,13 @@ public:
     AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, fim::app::Settings* settings,
                  QWidget* parent = nullptr);
 
+public slots:
+    // Re-read Settings::OutputDir() and Settings::SamplesPerFrame() and
+    // push them to the service so the next generation uses the new
+    // values. Called by MainWindow when the user changes settings via
+    // the menu bar.
+    void RefreshOutputDirFromSettings();
+
 protected:
     QString ModeTitle() const override;
     QWidget* BuildEmptyPageContent(QWidget* parent) override;

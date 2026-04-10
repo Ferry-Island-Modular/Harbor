@@ -65,6 +65,13 @@ SerumWavScreen::SerumWavScreen(fim::engine::RealtimeAudioEngine* engine,
     FinishInit();
 }
 
+void SerumWavScreen::RefreshOutputDirFromSettings() {
+    const QString user_dir =
+        QDir(QString::fromStdString(settings()->OutputDir())).filePath("serum_wav");
+    service_->SetOutputDirectory(user_dir);
+    service_->SetSamplesPerFrame(settings()->SamplesPerFrame());
+}
+
 QString SerumWavScreen::ModeTitle() const {
     return "Use a Serum .wav file to create your wavetable bank";
 }

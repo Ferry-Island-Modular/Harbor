@@ -71,6 +71,13 @@ AnyWavScreen::AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, fim::app::S
     FinishInit();
 }
 
+void AnyWavScreen::RefreshOutputDirFromSettings() {
+    const QString user_dir =
+        QDir(QString::fromStdString(settings()->OutputDir())).filePath("any_wav");
+    service_->SetOutputDirectory(user_dir);
+    service_->SetSamplesPerFrame(settings()->SamplesPerFrame());
+}
+
 QString AnyWavScreen::ModeTitle() const {
     return "Use any .wav file to create your wavetable bank";
 }

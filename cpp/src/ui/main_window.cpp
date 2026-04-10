@@ -1,5 +1,7 @@
 #include "ui/main_window.h"
 
+#include <QAction>
+#include <QFileDialog>
 #include <QMenuBar>
 #include <QStackedWidget>
 
@@ -72,10 +74,31 @@ void MainWindow::OnBackToLauncher() {
 
 void MainWindow::BuildMenuBar() {
     auto* file_menu = menuBar()->addMenu("&File");
+    auto* choose_dir_action = file_menu->addAction("Choose output directory…", this,
+                                                   &MainWindow::OnChooseOutputDirectory);
+    choose_dir_action->setStatusTip("Pick where Harbor saves your generated wavetable banks");
+    file_menu->addSeparator();
     file_menu->addAction("Quit", QKeySequence::Quit, this, &QWidget::close);
 
-    menuBar()->addMenu("&Audio");
-    menuBar()->addMenu("&Settings");
+    // Export menu (Task 6 fills this in)
+    menuBar()->addMenu("&Export");
+
+    // Help menu (Task 7 fills this in)
+    menuBar()->addMenu("&Help");
+}
+
+void MainWindow::OnChooseOutputDirectory() {
+    const QString current = QString::fromStdString(settings_.OutputDir());
+    const QString picked = QFileDialog::getExistingDirectory(
+        this, "Choose Harbor output directory", current,
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (picked.isEmpty()) {
+        return;  // user cancelled
+    }
+    settings_.SetOutputDir(picked.toStdString());
+    any_wav_screen_->RefreshOutputDirFromSettings();
+    serum_wav_screen_->RefreshOutputDirFromSettings();
+    three_wav_screen_->RefreshOutputDirFromSettings();
 }
 
 }  // namespace fim::ui

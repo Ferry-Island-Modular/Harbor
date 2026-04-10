@@ -31,6 +31,7 @@ public:
 private slots:
     void OnModeChosen(int mode);  // takes int because of LauncherScreen::Mode enum
     void OnBackToLauncher();
+    void OnChooseOutputDirectory();
 
 private:
     void BuildMenuBar();

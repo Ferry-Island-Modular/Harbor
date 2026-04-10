@@ -57,6 +57,13 @@ void ThreeWavScreen::Reset() {
     SetState(State::kFileSet);
 }
 
+void ThreeWavScreen::RefreshOutputDirFromSettings() {
+    const QString user_dir =
+        QDir(QString::fromStdString(settings()->OutputDir())).filePath("three_wav");
+    service_->SetOutputDirectory(user_dir);
+    service_->SetSamplesPerFrame(settings()->SamplesPerFrame());
+}
+
 QString ThreeWavScreen::ModeTitle() const {
     return "Use three .wav files to create your wavetable bank";
 }
