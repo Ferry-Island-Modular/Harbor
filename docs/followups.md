@@ -10,9 +10,15 @@ Things noticed during implementation that aren't blocking but should be revisite
 
 - **`SingleWavService` does not validate the input file.** It accepts any path and passes it straight to `SingleWavGenerator`, which may fail if the file is not a supported WAV. Add explicit validation with a user-friendly error.
 - **`SingleWavService::Generate()` is not cancellable.** Real DSP generation can take several seconds on a slow machine — add a `Cancel()` slot, an atomic `cancel_requested_` flag checked between pages, and a UI button to trigger it.
-- **Stub bank output dir is hardcoded to `QStandardPaths::AppLocalDataLocation/audio_resynth`.** Plumb this through `Settings::OutputDir()` and let the user override via a directory picker.
 - **`engine_->LoadBank()` runs on the GUI thread.** Currently called from `AnyWavScreen::SetState(kDonePreviewAvailable)` after generation finishes. Fast for typical banks (~2MB total) — move to a `QRunnable` only if it ever stalls the UI noticeably.
-- **Styling needs manual tuning.** The QSS port is functional but visually wonky compared to the design SVGs — paddings, spacings, color choices need adjustment. Will be done iteratively against the designs.
+- **Styling needs a full design pass.** Phase 5 addressed the worst offenders (equal-width columns, min window size, three-wav column layout) but the QSS port is still visually rough compared to the Penpot SVGs — paddings, spacings, color choices, font sizes all need iterative tuning against `designs/`.
+
+## Phase 5
+
+- **Help dialog content needs review.** `cpp/resources/help/help.html` was written from a developer's mental model. After the first round of beta testers, rewrite based on the questions they actually ask. May want to add screenshots once styling is finalized.
+- **AboutDialog version string is hardcoded to "(beta)".** Once we cut a non-beta release, drop the suffix and pull the channel from a CMake option (e.g. `-DHARBOR_RELEASE_CHANNEL=stable`).
+- **`package-macos.sh` contaminates the dev .app bundle.** Running `macdeployqt` populates `Harbor.app/Contents/Frameworks/` and `Contents/PlugIns/`, which causes a duplicate-Qt crash on the next dev-build launch. Fix: make the script work in a separate staging copy of the .app instead of modifying the in-place dev build. Workaround: `rm -rf cpp/build/Harbor.app && cmake --build cpp/build`.
+- **GitHub URL in About dialog and help.html will change.** Currently hardcoded to `github.com/jgoney/fim-config-tool`. Update when the repo is renamed or moved to an org.
 
 ## Preview widget
 
