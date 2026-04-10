@@ -74,8 +74,22 @@ VERSION="$(cd "$REPO_ROOT" && git describe --tags --always --dirty 2>/dev/null |
 echo "Packaging version: $VERSION"
 
 # ---- bundle Qt frameworks (no -dmg yet; we sign first) ----
+# macdeployqt deletes Contents/Info.plist — back it up and restore after.
+INFO_PLIST="${APP_PATH}/Contents/Info.plist"
+INFO_PLIST_BAK="${APP_PATH}/Contents/Info.plist.bak"
+if [[ -f "$INFO_PLIST" ]]; then
+    cp "$INFO_PLIST" "$INFO_PLIST_BAK"
+fi
+
 echo "Running macdeployqt..."
 "$MACDEPLOYQT" "$APP_PATH" -verbose=1
+
+# Restore Info.plist so the bundle has the correct CFBundleIconFile,
+# CFBundleName, CFBundleIdentifier, etc.
+if [[ -f "$INFO_PLIST_BAK" ]]; then
+    mv "$INFO_PLIST_BAK" "$INFO_PLIST"
+    echo "Restored Info.plist"
+fi
 
 # ---- ad-hoc sign the entire bundle (after macdeployqt rewrites binaries) ----
 # --force: overwrite any existing signature inherited from Qt
@@ -103,7 +117,7 @@ STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
 cp -R "$APP_PATH" "$STAGE_DIR/"
 ln -s /Applications "$STAGE_DIR/Applications"
-cp "${REPO_ROOT}/src/resources/dist/Read Me First.rtf" "$STAGE_DIR/"
+cp "${REPO_ROOT}/src/resources/dist/READ ME FIRST.txt" "$STAGE_DIR/"
 
 echo "Creating $DMG_PATH..."
 hdiutil create \
