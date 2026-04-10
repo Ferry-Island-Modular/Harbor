@@ -8,6 +8,8 @@
 
 #include "engine/realtime_audio_engine.h"
 #include "ui/any_wav_screen.h"
+#include "ui/dialogs/about_dialog.h"
+#include "ui/dialogs/help_dialog.h"
 #include "ui/launcher_screen.h"
 #include "ui/serum_wav_screen.h"
 #include "ui/three_wav_screen.h"
@@ -107,8 +109,10 @@ void MainWindow::BuildMenuBar() {
     connect(target_hardware_group_, &QActionGroup::triggered, this,
             &MainWindow::OnTargetHardwareChanged);
 
-    // Help menu (Task 7 fills this in)
-    menuBar()->addMenu("&Help");
+    auto* help_menu = menuBar()->addMenu("&Help");
+    help_menu->addAction("Harbor Help…", this, &MainWindow::OnShowHelp);
+    help_menu->addSeparator();
+    help_menu->addAction("About Harbor…", this, &MainWindow::OnShowAbout);
 }
 
 void MainWindow::OnChooseOutputDirectory() {
@@ -135,6 +139,16 @@ void MainWindow::OnTargetHardwareChanged() {
     any_wav_screen_->RefreshOutputDirFromSettings();
     serum_wav_screen_->RefreshOutputDirFromSettings();
     three_wav_screen_->RefreshOutputDirFromSettings();
+}
+
+void MainWindow::OnShowHelp() {
+    HelpDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::OnShowAbout() {
+    AboutDialog dialog(this);
+    dialog.exec();
 }
 
 }  // namespace fim::ui

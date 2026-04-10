@@ -250,6 +250,8 @@ qt_add_executable(fim-config-tool
     src/ui/any_wav_screen.cpp
     src/ui/serum_wav_screen.cpp
     src/ui/three_wav_screen.cpp
+    src/ui/dialogs/about_dialog.cpp
+    src/ui/dialogs/help_dialog.cpp
     src/ui/widgets/card_button.cpp
     src/ui/widgets/file_drop_widget.cpp
     src/ui/widgets/axis_morph_selector.cpp
@@ -284,6 +286,13 @@ qt_add_resources(fim-config-tool "app_fonts"
     PREFIX "/fonts"
     BASE   "${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts"
     FILES  "${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/InterVariable.ttf"
+)
+
+# Embed the help HTML so HelpDialog can load it from :/help/help.html.
+qt_add_resources(fim-config-tool "app_help"
+    PREFIX "/help"
+    BASE   "${CMAKE_CURRENT_SOURCE_DIR}/resources/help"
+    FILES  "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/help.html"
 )
 
 target_link_libraries(fim-config-tool PRIVATE

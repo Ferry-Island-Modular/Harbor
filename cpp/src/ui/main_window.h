@@ -35,6 +35,8 @@ private slots:
     void OnBackToLauncher();
     void OnChooseOutputDirectory();
     void OnTargetHardwareChanged();
+    void OnShowHelp();
+    void OnShowAbout();
 
 private:
     void BuildMenuBar();

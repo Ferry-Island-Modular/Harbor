@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head><title>Harbor Help</title></head>
+<body>
+<h1>Harbor</h1>
+<p><b>Harbor</b> generates wavetable banks for Eurorack hardware (Ferry Island Modular's Four Seas) and other wavetable synth hosts (e.g. Waveedit / Synthesis Technology).</p>
+
+<h2>Three modes</h2>
+<dl>
+<dt><b>Use any .wav file</b></dt>
+<dd>Drop in a single audio file. Harbor analyzes it and creates an 8&nbsp;page &times; 64&nbsp;cell wavetable bank by spectrally morphing the source across the X, Y, and Z axes. The Y and Z morph mode selectors control how the spectrum is transformed (see <b>Morph modes</b> below).</dd>
+
+<dt><b>Use a Serum .wav file</b></dt>
+<dd>Drop in a Serum-format wavetable (2048 samples per frame, any number of frames). Harbor resamples the frame timeline to 8 pages and applies the same Y/Z morph modes as Any-WAV mode. Serum exports are typically 32-bit float, but Harbor also accepts 16-bit and 24-bit files as long as the total sample count is a multiple of 2048.</dd>
+
+<dt><b>Use three .wav files</b></dt>
+<dd>Drop in three audio files, one per axis. Each cell in the 8&times;8&times;8 grid blends the three files' spectra weighted by the cell's position. No morph modes &mdash; all the variety comes from the three source files you pick.</dd>
+</dl>
+
+<h2>Morph modes</h2>
+<p>The <b>Y axis</b> and <b>Z axis</b> morph modes (available in Any-WAV and Serum modes) control how the source spectrum is transformed as you move along each axis. Each mode is applied independently.</p>
+
+<h3>Y axis modes</h3>
+<dl>
+<dt><b>Spectral tilt</b> (default)</dt>
+<dd>Tilts the magnitude spectrum, shifting energy between low and high frequencies. At one end the timbre is dark and bass-heavy; at the other it's bright and treble-forward.</dd>
+
+<dt><b>Formant scale</b></dt>
+<dd>Stretches or compresses the spectral envelope (the formant structure) without changing the fundamental pitch. Creates vowel-like or resonant-body shifts.</dd>
+
+<dt><b>Harmonic stretch</b></dt>
+<dd>Stretches the spacing between harmonics. Low values keep harmonics at their natural integer ratios (1x, 2x, 3x&hellip;); high values push them apart into inharmonic, metallic, bell-like territory.</dd>
+
+<dt><b>Spectral smear</b></dt>
+<dd>Blurs the magnitude spectrum by averaging neighboring bins. Low values leave the spectrum sharp; high values diffuse it into a washed-out, pad-like timbre.</dd>
+</dl>
+
+<h3>Z axis modes</h3>
+<dl>
+<dt><b>Random phase</b> (default)</dt>
+<dd>Randomizes the phase of each spectral bin. Preserves the magnitude spectrum (same perceived brightness) but changes the waveform shape, producing a different texture on each Z page.</dd>
+
+<dt><b>Phase disperse</b></dt>
+<dd>Applies a frequency-dependent phase shift that spreads energy across the cycle. Creates a progressively more diffuse, chorus-like character as the Z value increases.</dd>
+
+<dt><b>Bit crush</b></dt>
+<dd>Quantizes the waveform amplitude to fewer levels, introducing digital distortion and aliasing artifacts. Extreme at high values &mdash; Eurorack users have attenuators.</dd>
+</dl>
+
+<h2>Output directory</h2>
+<p>Use <b>File &gt; Choose output directory&hellip;</b> to pick where Harbor saves the generated banks. By default they go to <code>~/Documents/Harbor/</code>, organized into per-mode subdirectories.</p>
+
+<h2>Target hardware</h2>
+<p>Use <b>Export &gt; Target hardware</b> to choose between:</p>
+<ul>
+<li><b>Four Seas (2048 samples per cycle)</b> &mdash; the default. Compatible with Ferry Island Modular's Four Seas oscillator.</li>
+<li><b>Waveedit (256 samples per cycle)</b> &mdash; compatible with Synthesis Technology's Waveedit and other 256-sample wavetable hosts.</li>
+</ul>
+<p>The preview always plays the 2048-sample version regardless of which target you've selected.</p>
+
+<h2>Preview</h2>
+<p>After Generate finishes, the preview panel appears with X, Y, Z, Pitch, and Volume sliders. Click <b>Play steady tone</b> to audition the bank. Drag the sliders to scan through the wavetable grid.</p>
+
+<h2>Reporting bugs</h2>
+<p>Harbor is in beta. Please report issues on the project's GitHub issue tracker.</p>
+
+</body>
+</html>
