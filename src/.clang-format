@@ -1,0 +1,37 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+
+# Braces are mandatory for all control flow, even single statements.
+# "Explicit is better than implicit, unless outrageously verbose."
+InsertBraces: true
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+# Empty/trivial inline functions on one line are still OK (e.g. `void foo() {}`)
+AllowShortFunctionsOnASingleLine: Inline
+
+# Braces on same line as declarator (K&R style)
+BreakBeforeBraces: Attach
+
+# Pointer/reference next to the type: `int* p`, `int& r`
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+# Include organization
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+
+# Access specifiers flush with the class
+AccessModifierOffset: -4
+NamespaceIndentation: None
+
+SpaceAfterCStyleCast: false
+
+Standard: c++17
+---

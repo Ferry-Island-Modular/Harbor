@@ -3,6 +3,7 @@ __pycache__/
 *.py[oc]
 build/
 dist/
+!src/resources/dist/
 wheels/
 *.egg-info
 
@@ -19,3 +20,6 @@ output_waves
 
 # OS-specific files
 .DS_Store
+
+# Git worktrees
+.worktrees/

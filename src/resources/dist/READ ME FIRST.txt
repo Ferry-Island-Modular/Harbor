@@ -1,0 +1,24 @@
+HARBOR (beta)
+=============
+
+Harbor is a desktop tool for generating wavetable banks for Ferry Island
+Modular hardware and other wavetable synth hosts.
+
+
+INSTALLING
+----------
+
+1. Drag Harbor to the Applications folder.
+
+2. Right-click Harbor in Applications, choose Open, then click Open in
+   the warning dialog. macOS remembers this and will not ask again.
+
+3. Launch Harbor from Applications normally after that.
+
+
+REPORTING BUGS
+--------------
+
+Please file issues on the project's GitHub issue tracker.
+
+Thanks for testing!

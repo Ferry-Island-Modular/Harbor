@@ -1,0 +1,15 @@
+# Build outputs
+build/
+cmake-build-*/
+generated/
+
+# IDE
+.idea/
+.vscode/
+*.user
+CMakeLists.txt.user*
+compile_commands.json
+
+# OS
+.DS_Store
+Thumbs.db
