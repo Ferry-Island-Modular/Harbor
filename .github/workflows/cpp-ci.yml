@@ -49,6 +49,9 @@ jobs:
           - os: ubuntu-latest
             qt_host: linux
             qt_arch: linux_gcc_64
+          - os: ubuntu-24.04-arm
+            qt_host: linux
+            qt_arch: linux_gcc_arm64
           - os: windows-latest
             qt_host: windows
             qt_arch: win64_msvc2022_64
@@ -124,15 +127,17 @@ jobs:
       # binary all use those names, NOT "fim-config-tool".
 
       # Linux: build a self-contained AppImage via linuxdeploy + Qt plugin.
-      # Runs on any glibc >= the runner's, so ubuntu-latest -> modern distros.
+      # Builds on both x86_64 and aarch64 runners; uses uname -m to pick
+      # the matching linuxdeploy AppImages and tag the artifact name.
       - name: Bundle as AppImage (Linux)
         if: runner.os == 'Linux'
         working-directory: src
         env:
           APPIMAGE_EXTRACT_AND_RUN: '1'  # CI runners can lack FUSE
         run: |
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          ARCH=$(uname -m)
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage
           chmod +x linuxdeploy-*.AppImage
           mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/512x512/apps
           cp build/harbor AppDir/usr/bin/
@@ -145,13 +150,13 @@ jobs:
           Icon=harbor
           Categories=Utility;
           EOF
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
+          ./linuxdeploy-${ARCH}.AppImage --appdir AppDir --plugin qt --output appimage
 
       - name: Upload AppImage (Linux)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: fim-config-tool-linux
+          name: fim-config-tool-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
           path: src/Harbor*.AppImage
           if-no-files-found: error
           retention-days: 14
