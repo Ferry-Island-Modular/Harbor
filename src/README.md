@@ -39,3 +39,15 @@ The output directory contains `sources/`, `banks/`, `previews/`, and a
 `manifest.csv` recording the fixed generation seed and paths. The corpus is a
 stress set for relative listening comparisons; it is not intended to model
 real instruments faithfully.
+
+For a small corpus of real public-domain recordings, install `ffmpeg` and run:
+
+```bash
+python3 src/tools/fetch_real_eval_corpus.py evaluation-corpus
+```
+
+This downloads voice, flute, percussion-loop, rain, and dense-mix recordings
+from Wikimedia Commons, converts the first 20 seconds of each to mono 44.1 kHz
+PCM WAV, and records URLs, authors, licenses, and SHA-256 hashes in
+`evaluation-corpus/manifest.json`. The downloaded and converted audio is
+ignored by git.
