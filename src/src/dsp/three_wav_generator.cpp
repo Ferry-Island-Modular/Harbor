@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <numbers>
 #include <random>
+#include <stdexcept>
 #include <vector>
 
 #include "dr_wav.h"
@@ -82,7 +83,12 @@ std::vector<float> RandomPhaseIfft(const std::vector<float>& magnitude, RealFft&
 }  // namespace
 
 ThreeWavGenerator::ThreeWavGenerator(std::size_t samples, std::size_t num_pages)
-    : samples_(samples), num_pages_(num_pages) {}
+    : samples_(samples), num_pages_(num_pages) {
+    if (samples != 2048 || num_pages != 8) {
+        throw std::invalid_argument(
+            "ThreeWavGenerator currently supports only 2048 samples and 8 pages");
+    }
+}
 
 bool ThreeWavGenerator::Generate(const std::array<std::filesystem::path, 3>& input_paths,
                                  const std::filesystem::path& output_directory,

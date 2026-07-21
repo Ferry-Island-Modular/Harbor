@@ -22,6 +22,7 @@ namespace fim::dsp {
 // alternative algorithms we considered.
 class ThreeWavGenerator {
 public:
+    // Values outside the fixed Four Seas contract throw std::invalid_argument.
     explicit ThreeWavGenerator(std::size_t samples = 2048, std::size_t num_pages = 8);
 
     using ProgressCallback = std::function<void(int percent)>;

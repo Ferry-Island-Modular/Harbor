@@ -32,18 +32,16 @@ bool ThreeWavService::AllFilesSet() const {
     return true;
 }
 
-bool ThreeWavService::DoGenerate(const std::filesystem::path& /*input*/,
-                                 const std::filesystem::path& output,
-                                 const ProgressCallback& progress_cb) {
-    // Ignore the base-class input parameter — three-wav uses its own
-    // 3-slot array instead. Snapshot it for thread safety.
+GenerateServiceBase::GenerationTask ThreeWavService::CreateGenerationTask() const {
     std::array<std::filesystem::path, 3> input_paths;
     for (std::size_t i = 0; i < 3; ++i) {
         input_paths[i] = std::filesystem::path(files_[i].toStdString());
     }
-
-    fim::dsp::ThreeWavGenerator generator;
-    return generator.Generate(input_paths, output, progress_cb);
+    return [input_paths](const std::filesystem::path& /*input*/,
+                         const std::filesystem::path& output, const ProgressCallback& progress_cb) {
+        fim::dsp::ThreeWavGenerator generator;
+        return generator.Generate(input_paths, output, progress_cb);
+    };
 }
 
 }  // namespace fim::app

@@ -5,6 +5,7 @@
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 #include "dr_wav.h"
@@ -32,7 +33,13 @@ SingleWavGenerator::SingleWavGenerator(std::size_t samples, std::size_t oversamp
     : samples_(samples),
       oversample_factor_(oversample_factor),
       n_samples_(samples * oversample_factor),
-      num_pages_(num_pages) {}
+      num_pages_(num_pages) {
+    if (samples != 2048 || oversample_factor != 4 || num_pages != 8) {
+        throw std::invalid_argument(
+            "SingleWavGenerator currently supports only 2048 samples, 4x oversampling, and 8 "
+            "pages");
+    }
+}
 
 bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
                                   const std::filesystem::path& output_directory,

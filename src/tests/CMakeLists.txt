@@ -13,6 +13,7 @@ add_executable(fim-tests
     dsp_spectral_modifier_test.cpp
     dsp_cycle_extractor_test.cpp
     dsp_post_effects_test.cpp
+    dsp_generator_contract_test.cpp
     dsp_serum_loader_test.cpp
     dsp_serum_morpher_test.cpp
     dsp_resample_test.cpp
@@ -35,6 +36,9 @@ add_executable(fim-tests
     ../src/dsp/post_effects.cpp
     ../src/dsp/serum_loader.cpp
     ../src/dsp/serum_morpher.cpp
+    ../src/dsp/serum_generator.cpp
+    ../src/dsp/three_wav_generator.cpp
+    ../src/dsp/single_wav_generator.cpp
 )
 
 target_include_directories(fim-tests PRIVATE

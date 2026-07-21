@@ -1,7 +1,6 @@
 #include "ui/mode_screen_base.h"
 
 #include <QDir>
-#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
@@ -12,6 +11,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+#include "app/services/export_writer.h"
 #include "app/services/generate_service_base.h"
 #include "app/settings.h"
 #include "engine/realtime_audio_engine.h"
@@ -23,8 +23,6 @@ namespace fim::ui {
 namespace {
 
 constexpr int kDoneMessageHoldMs = 800;
-constexpr int kNumPages = 8;
-
 }  // namespace
 
 ModeScreenBase::ModeScreenBase(fim::engine::RealtimeAudioEngine* engine,
@@ -249,10 +247,9 @@ void ModeScreenBase::OnExportClicked() {
         return;
     }
     const QString src_dir = OutputDirForPreview();
-    for (int i = 1; i <= kNumPages; ++i) {
-        const QString src = QString("%1/%2.wav").arg(src_dir).arg(i);
-        const QString dst = QString("%1/%2.wav").arg(dest).arg(i);
-        QFile::copy(src, dst);
+    if (!fim::app::WriteBankToExportDir(src_dir, dest, settings_->SamplesPerFrame())) {
+        QMessageBox::warning(this, "Export failed",
+                             QString("Could not export the wavetable bank to %1").arg(dest));
     }
 }
 

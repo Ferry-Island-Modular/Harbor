@@ -24,6 +24,7 @@ namespace fim::dsp {
 //   num_pages          = 8      (Z dimension, fixed by hardware)
 class SingleWavGenerator {
 public:
+    // Values outside the fixed Four Seas contract throw std::invalid_argument.
     explicit SingleWavGenerator(std::size_t samples = 2048, std::size_t oversample_factor = 4,
                                 std::size_t num_pages = 8);
 

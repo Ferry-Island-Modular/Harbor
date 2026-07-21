@@ -12,12 +12,13 @@ void SerumWavService::SetZMode(fim::dsp::SerumMode mode) {
     options_.z_mode = mode;
 }
 
-bool SerumWavService::DoGenerate(const std::filesystem::path& input,
-                                 const std::filesystem::path& output,
-                                 const ProgressCallback& progress_cb) {
+GenerateServiceBase::GenerationTask SerumWavService::CreateGenerationTask() const {
     const fim::dsp::SerumGenerateOptions opts = options_;
-    fim::dsp::SerumGenerator generator;
-    return generator.Generate(input, output, opts, progress_cb);
+    return [opts](const std::filesystem::path& input, const std::filesystem::path& output,
+                  const ProgressCallback& progress_cb) {
+        fim::dsp::SerumGenerator generator;
+        return generator.Generate(input, output, opts, progress_cb);
+    };
 }
 
 }  // namespace fim::app

@@ -1,8 +1,15 @@
 #pragma once
 
 #include <QString>
+#include <filesystem>
 
 namespace fim::app {
+
+// Atomically publish a fully generated staging directory. If destination
+// already exists it is moved aside first and restored if publication fails.
+// Staging and destination must be siblings on the same filesystem.
+bool PublishStagedBank(const std::filesystem::path& staging,
+                       const std::filesystem::path& destination);
 
 // Copies an 8-page wavetable bank from a source directory to a destination
 // directory, optionally downsampling each cycle from 2048 samples to

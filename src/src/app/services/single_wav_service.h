@@ -20,8 +20,7 @@ public:
     void SetZMode(fim::dsp::ZMode mode);
 
 protected:
-    bool DoGenerate(const std::filesystem::path& input, const std::filesystem::path& output,
-                    const ProgressCallback& progress_cb) override;
+    GenerationTask CreateGenerationTask() const override;
 
 private:
     fim::dsp::GenerateOptions options_;
