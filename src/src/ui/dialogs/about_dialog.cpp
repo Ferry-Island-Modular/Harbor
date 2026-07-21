@@ -23,7 +23,7 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {
                           "and other wavetable synth hosts.</p>"
                           "<p>License: MIT</p>"
                           "<p>Built with Qt, libsamplerate, dr_wav, miniaudio, PFFFT, "
-                          "spdlog, Catch2, and the FourSeas firmware engine.</p>"
+                          "Catch2, and the FourSeas firmware engine.</p>"
                           "<p><a href='https://github.com/jgoney/fim-config-tool'>"
                           "github.com/jgoney/fim-config-tool</a></p>")
                       .arg(HARBOR_VERSION));

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <optional>
+
 #include "dsp/spectral_modifier.h"
 
 namespace fim::dsp {
@@ -10,6 +13,10 @@ namespace fim::dsp {
 struct GenerateOptions {
     YMode y_mode = YMode::kTilt;
     ZMode z_mode = ZMode::kRandom;
+
+    // Leave unset for fresh variations in the interactive app. Evaluation
+    // tools set this so identical inputs and options produce identical banks.
+    std::optional<std::uint32_t> random_seed;
 };
 
 }  // namespace fim::dsp

@@ -53,7 +53,6 @@ target_link_libraries(fim-tests PRIVATE
     miniaudio_headers
     dr_wav_headers
     SampleRate::samplerate
-    spdlog::spdlog
 )
 
 # Disable Qt AUTOMOC for the test target — it has no Q_OBJECTs.

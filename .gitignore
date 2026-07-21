@@ -17,6 +17,7 @@ wheels/
 
 # Output audio files
 output_waves
+evaluation-output/
 
 # OS-specific files
 .DS_Store

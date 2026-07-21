@@ -85,7 +85,9 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
     FftResampler downsampler(n_samples_, samples_);
 
     for (std::size_t z = 0; z < num_pages_; ++z) {
-        SpectralModifier modifier;
+        auto modifier = options.random_seed.has_value()
+                            ? SpectralModifier(*options.random_seed + static_cast<std::uint32_t>(z))
+                            : SpectralModifier();
 
         // Precompute the Z-crush params for this page if crush mode is
         // selected. We use `z` (the page index) as the crush intensity so
