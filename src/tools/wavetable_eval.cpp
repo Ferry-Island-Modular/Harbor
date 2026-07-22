@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
@@ -254,7 +255,59 @@ std::vector<Fixture> BuildCorpus() {
     return fixtures;
 }
 
-int Run(const fs::path& output_root) {
+std::string SafeFixtureName(std::string_view name) {
+    std::string safe;
+    safe.reserve(name.size());
+    bool last_was_separator = false;
+    for (unsigned char character : name) {
+        if (std::isalnum(character)) {
+            safe.push_back(static_cast<char>(std::tolower(character)));
+            last_was_separator = false;
+        } else if (!safe.empty() && !last_was_separator) {
+            safe.push_back('_');
+            last_was_separator = true;
+        }
+    }
+    while (!safe.empty() && safe.back() == '_') {
+        safe.pop_back();
+    }
+    return safe;
+}
+
+bool GenerateFixture(const std::string& name, std::string_view origin, const fs::path& source_path,
+                     const fs::path& output_root, const fs::path& banks_directory,
+                     const fs::path& previews_directory,
+                     const fim::dsp::SingleWavGenerator& generator,
+                     const fim::dsp::GenerateOptions& options, std::ofstream& manifest) {
+    std::cout << "Generating " << name << "...\n";
+    const fs::path bank_path = banks_directory / name;
+    if (!generator.Generate(source_path, bank_path, options)) {
+        std::cerr << "Failed to generate bank for " << name << '\n';
+        return false;
+    }
+
+    std::array<fs::path, 3> preview_paths;
+    constexpr std::array<SweepAxis, 3> axes = {SweepAxis::kX, SweepAxis::kY, SweepAxis::kZ};
+    for (std::size_t i = 0; i < axes.size(); ++i) {
+        preview_paths[i] =
+            previews_directory / (name + "_" + std::string(AxisName(axes[i])) + ".wav");
+        if (!RenderSweep(bank_path, axes[i], preview_paths[i])) {
+            std::cerr << "Failed to render " << AxisName(axes[i]) << " preview for " << name
+                      << '\n';
+            return false;
+        }
+    }
+
+    manifest << name << ',' << origin << ',' << kGenerationSeed << ",tilt,random,"
+             << fs::relative(source_path, output_root).generic_string() << ','
+             << fs::relative(bank_path, output_root).generic_string() << ','
+             << fs::relative(preview_paths[0], output_root).generic_string() << ','
+             << fs::relative(preview_paths[1], output_root).generic_string() << ','
+             << fs::relative(preview_paths[2], output_root).generic_string() << '\n';
+    return true;
+}
+
+int Run(const fs::path& output_root, const std::vector<fs::path>& external_inputs) {
     const fs::path sources_directory = output_root / "sources";
     const fs::path banks_directory = output_root / "banks";
     const fs::path previews_directory = output_root / "previews";
@@ -272,40 +325,48 @@ int Run(const fs::path& output_root) {
         std::cerr << "Unable to create evaluation manifest\n";
         return 1;
     }
-    manifest << "fixture,seed,y_mode,z_mode,source,bank,x_preview,y_preview,z_preview\n";
+    manifest << "fixture,origin,seed,y_mode,z_mode,source,bank,x_preview,y_preview,z_preview\n";
 
     fim::dsp::GenerateOptions options;
     options.random_seed = kGenerationSeed;
     fim::dsp::SingleWavGenerator generator;
 
     for (const auto& fixture : BuildCorpus()) {
-        std::cout << "Generating " << fixture.name << "...\n";
         const fs::path source_path = sources_directory / (fixture.name + ".wav");
-        const fs::path bank_path = banks_directory / fixture.name;
         if (!WriteMonoPcm16(source_path, fixture.samples) ||
-            !generator.Generate(source_path, bank_path, options)) {
-            std::cerr << "Failed to generate bank for " << fixture.name << '\n';
+            !GenerateFixture(fixture.name, "synthetic", source_path, output_root, banks_directory,
+                             previews_directory, generator, options, manifest)) {
+            return 1;
+        }
+    }
+
+    std::vector<std::string> external_names;
+    for (const auto& input : external_inputs) {
+        std::error_code input_ec;
+        if (!fs::is_regular_file(input, input_ec) || input_ec || input.extension() != ".wav") {
+            std::cerr << "External input is not a readable .wav file: " << input << '\n';
             return 1;
         }
 
-        std::array<fs::path, 3> preview_paths;
-        constexpr std::array<SweepAxis, 3> axes = {SweepAxis::kX, SweepAxis::kY, SweepAxis::kZ};
-        for (std::size_t i = 0; i < axes.size(); ++i) {
-            preview_paths[i] =
-                previews_directory / (fixture.name + "_" + std::string(AxisName(axes[i])) + ".wav");
-            if (!RenderSweep(bank_path, axes[i], preview_paths[i])) {
-                std::cerr << "Failed to render " << AxisName(axes[i]) << " preview for "
-                          << fixture.name << '\n';
-                return 1;
-            }
+        const std::string name = "real_" + SafeFixtureName(input.stem().string());
+        if (name == "real_" ||
+            std::find(external_names.begin(), external_names.end(), name) != external_names.end()) {
+            std::cerr << "External input has an empty or duplicate fixture name: " << input << '\n';
+            return 1;
         }
+        external_names.push_back(name);
 
-        manifest << fixture.name << ',' << kGenerationSeed << ",tilt,random,"
-                 << fs::relative(source_path, output_root).generic_string() << ','
-                 << fs::relative(bank_path, output_root).generic_string() << ','
-                 << fs::relative(preview_paths[0], output_root).generic_string() << ','
-                 << fs::relative(preview_paths[1], output_root).generic_string() << ','
-                 << fs::relative(preview_paths[2], output_root).generic_string() << '\n';
+        const fs::path copied_source = sources_directory / (name + ".wav");
+        fs::copy_file(input, copied_source, fs::copy_options::overwrite_existing, input_ec);
+        if (input_ec ||
+            !GenerateFixture(name, "external", copied_source, output_root, banks_directory,
+                             previews_directory, generator, options, manifest)) {
+            if (input_ec) {
+                std::cerr << "Failed to copy external input " << input << ": " << input_ec.message()
+                          << '\n';
+            }
+            return 1;
+        }
     }
 
     std::cout << "Evaluation corpus written to " << output_root << '\n';
@@ -316,12 +377,13 @@ int Run(const fs::path& output_root) {
 
 int main(int argc, char** argv) {
     if (argc > 1 && std::string_view(argv[1]) == "--help") {
-        std::cout << "Usage: fim-wavetable-eval [output-directory]\n";
+        std::cout << "Usage: fim-wavetable-eval [output-directory] [input.wav ...]\n";
         return 0;
     }
-    if (argc > 2) {
-        std::cerr << "Usage: fim-wavetable-eval [output-directory]\n";
-        return 2;
+    const fs::path output = argc >= 2 ? fs::path(argv[1]) : fs::path("evaluation-output");
+    std::vector<fs::path> external_inputs;
+    for (int i = 2; i < argc; ++i) {
+        external_inputs.emplace_back(argv[i]);
     }
-    return Run(argc == 2 ? fs::path(argv[1]) : fs::path("evaluation-output"));
+    return Run(output, external_inputs);
 }
