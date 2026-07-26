@@ -77,3 +77,28 @@ transformation to Y and Z:
 ./build/fim-wavetable-eval --candidate --frequency 55 \
     evaluation-output/candidate-source-selection-bass evaluation-corpus/real/*.wav
 ```
+
+For controlled comparisons, the two parts of candidate mode can also be
+selected independently:
+
+```bash
+# Change frame selection only; retain the legacy X spectral stretch.
+./build/fim-wavetable-eval --frame-selection salient --x-stretch enabled \
+    --frequency 55 evaluation-output/salient-with-stretch-bass
+
+# Change X behavior only; retain uniform source-frame selection.
+./build/fim-wavetable-eval --frame-selection uniform --x-stretch disabled \
+    --frequency 55 evaluation-output/uniform-without-stretch-bass
+```
+
+The generated banks can be compared with the audit and spectral modules from
+the Four-Seas resources repository:
+
+```bash
+cd /path/to/Four-Seas/resources/generators
+uv run python /path/to/fim-config-tool/src/scripts/analyze-wavetable-evaluations.py \
+    --analysis-root "$PWD" \
+    --variant legacy=/path/to/baseline/banks \
+    --variant candidate=/path/to/candidate/banks \
+    --output /path/to/variant-analysis.json
+```

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <numbers>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -316,7 +317,8 @@ bool GenerateFixture(const std::string& name, std::string_view origin, const fs:
 }
 
 int Run(const fs::path& output_root, const std::vector<fs::path>& external_inputs,
-        float preview_frequency, bool candidate_mode) {
+        float preview_frequency, fim::dsp::FrameSelectionMode frame_selection,
+        bool apply_x_spectral_stretch) {
     const fs::path sources_directory = output_root / "sources";
     const fs::path banks_directory = output_root / "banks";
     const fs::path previews_directory = output_root / "previews";
@@ -339,10 +341,8 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
 
     fim::dsp::GenerateOptions options;
     options.random_seed = kGenerationSeed;
-    if (candidate_mode) {
-        options.frame_selection = fim::dsp::FrameSelectionMode::kSalientWindow;
-        options.apply_x_spectral_stretch = false;
-    }
+    options.frame_selection = frame_selection;
+    options.apply_x_spectral_stretch = apply_x_spectral_stretch;
     fim::dsp::SingleWavGenerator generator;
 
     for (const auto& fixture : BuildCorpus()) {
@@ -392,17 +392,55 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
 int main(int argc, char** argv) {
     float preview_frequency = kDefaultPreviewFrequency;
     bool candidate_mode = false;
+    std::optional<fim::dsp::FrameSelectionMode> requested_frame_selection;
+    std::optional<bool> requested_x_spectral_stretch;
     int next_argument = 1;
     while (next_argument < argc) {
         const std::string_view argument(argv[next_argument]);
         if (argument == "--help") {
-            std::cout << "Usage: fim-wavetable-eval [--candidate] [--frequency HZ] "
+            std::cout << "Usage: fim-wavetable-eval [--candidate] "
+                         "[--frame-selection uniform|salient] "
+                         "[--x-stretch enabled|disabled] [--frequency HZ] "
                          "[output-directory] [input.wav ...]\n";
             return 0;
         }
         if (argument == "--candidate") {
             candidate_mode = true;
             ++next_argument;
+            continue;
+        }
+        if (argument == "--frame-selection") {
+            if (next_argument + 1 >= argc) {
+                std::cerr << "--frame-selection requires uniform or salient\n";
+                return 2;
+            }
+            const std::string_view value(argv[next_argument + 1]);
+            if (value == "uniform") {
+                requested_frame_selection = fim::dsp::FrameSelectionMode::kUniform;
+            } else if (value == "salient") {
+                requested_frame_selection = fim::dsp::FrameSelectionMode::kSalientWindow;
+            } else {
+                std::cerr << "--frame-selection requires uniform or salient\n";
+                return 2;
+            }
+            next_argument += 2;
+            continue;
+        }
+        if (argument == "--x-stretch") {
+            if (next_argument + 1 >= argc) {
+                std::cerr << "--x-stretch requires enabled or disabled\n";
+                return 2;
+            }
+            const std::string_view value(argv[next_argument + 1]);
+            if (value == "enabled") {
+                requested_x_spectral_stretch = true;
+            } else if (value == "disabled") {
+                requested_x_spectral_stretch = false;
+            } else {
+                std::cerr << "--x-stretch requires enabled or disabled\n";
+                return 2;
+            }
+            next_argument += 2;
             continue;
         }
         if (argument != "--frequency") {
@@ -433,5 +471,10 @@ int main(int argc, char** argv) {
     for (int i = next_argument; i < argc; ++i) {
         external_inputs.emplace_back(argv[i]);
     }
-    return Run(output, external_inputs, preview_frequency, candidate_mode);
+    const auto frame_selection = requested_frame_selection.value_or(
+        candidate_mode ? fim::dsp::FrameSelectionMode::kSalientWindow
+                       : fim::dsp::FrameSelectionMode::kUniform);
+    const bool apply_x_spectral_stretch = requested_x_spectral_stretch.value_or(!candidate_mode);
+    return Run(output, external_inputs, preview_frequency, frame_selection,
+               apply_x_spectral_stretch);
 }
