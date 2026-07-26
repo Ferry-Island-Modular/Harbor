@@ -67,3 +67,13 @@ listening set, for example:
 ./build/fim-wavetable-eval --frequency 55 evaluation-output/baseline-bass \
     evaluation-corpus/real/*.wav
 ```
+
+Use `--candidate` to compare the first qualitative strategy against that
+baseline. Candidate mode selects a salient, non-silent source window and
+dedicates X exclusively to progression through those frames, leaving spectral
+transformation to Y and Z:
+
+```bash
+./build/fim-wavetable-eval --candidate --frequency 55 \
+    evaluation-output/candidate-source-selection-bass evaluation-corpus/real/*.wav
+```

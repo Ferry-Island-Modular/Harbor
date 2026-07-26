@@ -272,7 +272,7 @@ void SpectralModifier::Seed(std::uint32_t seed) {
 
 void SpectralModifier::Apply(std::vector<std::vector<float>>& magnitude,
                              std::vector<std::vector<float>>& phase, int x, int y, int z,
-                             YMode y_mode, ZMode z_mode) {
+                             YMode y_mode, ZMode z_mode, bool apply_x_spectral_stretch) {
     const std::size_t num_bins = magnitude.size();
     if (num_bins == 0 || magnitude[0].empty()) {
         return;
@@ -299,7 +299,9 @@ void SpectralModifier::Apply(std::vector<std::vector<float>>& magnitude,
     }
 
     // ---- X: spectral envelope stretch (runs AFTER Y, reads Y-modified envelope) ----
-    ApplyXStretch(magnitude, x_norm);
+    if (apply_x_spectral_stretch) {
+        ApplyXStretch(magnitude, x_norm);
+    }
 
     // ---- Z: phase morph mode dispatch ----
     switch (z_mode) {

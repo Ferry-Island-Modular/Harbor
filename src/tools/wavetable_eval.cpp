@@ -301,8 +301,13 @@ bool GenerateFixture(const std::string& name, std::string_view origin, const fs:
         }
     }
 
+    const std::string_view frame_selection =
+        options.frame_selection == fim::dsp::FrameSelectionMode::kSalientWindow ? "salient_window"
+                                                                                : "uniform";
     manifest << name << ',' << origin << ',' << kGenerationSeed << ',' << preview_frequency
-             << ",tilt,random," << fs::relative(source_path, output_root).generic_string() << ','
+             << ",tilt,random," << frame_selection << ','
+             << (options.apply_x_spectral_stretch ? "enabled" : "disabled") << ','
+             << fs::relative(source_path, output_root).generic_string() << ','
              << fs::relative(bank_path, output_root).generic_string() << ','
              << fs::relative(preview_paths[0], output_root).generic_string() << ','
              << fs::relative(preview_paths[1], output_root).generic_string() << ','
@@ -311,7 +316,7 @@ bool GenerateFixture(const std::string& name, std::string_view origin, const fs:
 }
 
 int Run(const fs::path& output_root, const std::vector<fs::path>& external_inputs,
-        float preview_frequency) {
+        float preview_frequency, bool candidate_mode) {
     const fs::path sources_directory = output_root / "sources";
     const fs::path banks_directory = output_root / "banks";
     const fs::path previews_directory = output_root / "previews";
@@ -329,11 +334,15 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
         std::cerr << "Unable to create evaluation manifest\n";
         return 1;
     }
-    manifest << "fixture,origin,seed,preview_frequency_hz,y_mode,z_mode,source,bank,x_preview,"
-                "y_preview,z_preview\n";
+    manifest << "fixture,origin,seed,preview_frequency_hz,y_mode,z_mode,frame_selection,"
+                "x_spectral_stretch,source,bank,x_preview,y_preview,z_preview\n";
 
     fim::dsp::GenerateOptions options;
     options.random_seed = kGenerationSeed;
+    if (candidate_mode) {
+        options.frame_selection = fim::dsp::FrameSelectionMode::kSalientWindow;
+        options.apply_x_spectral_stretch = false;
+    }
     fim::dsp::SingleWavGenerator generator;
 
     for (const auto& fixture : BuildCorpus()) {
@@ -381,27 +390,41 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
 }  // namespace
 
 int main(int argc, char** argv) {
-    if (argc > 1 && std::string_view(argv[1]) == "--help") {
-        std::cout << "Usage: fim-wavetable-eval [--frequency HZ] [output-directory] "
-                     "[input.wav ...]\n";
-        return 0;
-    }
-
     float preview_frequency = kDefaultPreviewFrequency;
+    bool candidate_mode = false;
     int next_argument = 1;
-    if (argc > 1 && std::string_view(argv[1]) == "--frequency") {
-        if (argc < 3) {
+    while (next_argument < argc) {
+        const std::string_view argument(argv[next_argument]);
+        if (argument == "--help") {
+            std::cout << "Usage: fim-wavetable-eval [--candidate] [--frequency HZ] "
+                         "[output-directory] [input.wav ...]\n";
+            return 0;
+        }
+        if (argument == "--candidate") {
+            candidate_mode = true;
+            ++next_argument;
+            continue;
+        }
+        if (argument != "--frequency") {
+            if (argument.starts_with("--")) {
+                std::cerr << "Unknown option: " << argument << '\n';
+                return 2;
+            }
+            break;
+        }
+        if (next_argument + 1 >= argc) {
             std::cerr << "--frequency requires a value in Hz\n";
             return 2;
         }
         char* parse_end = nullptr;
-        preview_frequency = std::strtof(argv[2], &parse_end);
-        if (parse_end == argv[2] || *parse_end != '\0' || !std::isfinite(preview_frequency) ||
-            preview_frequency <= 0.0f || preview_frequency > 20000.0f) {
+        preview_frequency = std::strtof(argv[next_argument + 1], &parse_end);
+        if (parse_end == argv[next_argument + 1] || *parse_end != '\0' ||
+            !std::isfinite(preview_frequency) || preview_frequency <= 0.0f ||
+            preview_frequency > 20000.0f) {
             std::cerr << "Preview frequency must be a number between 0 and 20000 Hz\n";
             return 2;
         }
-        next_argument = 3;
+        next_argument += 2;
     }
 
     const fs::path output =
@@ -410,5 +433,5 @@ int main(int argc, char** argv) {
     for (int i = next_argument; i < argc; ++i) {
         external_inputs.emplace_back(argv[i]);
     }
-    return Run(output, external_inputs, preview_frequency);
+    return Run(output, external_inputs, preview_frequency, candidate_mode);
 }

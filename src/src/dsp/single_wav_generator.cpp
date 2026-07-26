@@ -64,6 +64,11 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
     const auto magnitude = Magnitude(bins);
     const auto phase = Phase(bins);
     const std::size_t num_frames = bins.size();
+    const auto selected_frames =
+        SelectSourceFrames(magnitude, options.frame_selection, kCellsPerSide);
+    if (selected_frames.size() != kCellsPerSide) {
+        return false;
+    }
 
     // Stft::Analyze and the Magnitude/Phase helpers return arrays indexed
     // [frame][bin] (matching the Stft::Analyze internal frame loop). But
@@ -102,13 +107,31 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
 
         for (std::size_t y = 0; y < kCellsPerSide; ++y) {
             for (std::size_t x = 0; x < kCellsPerSide; ++x) {
-                auto mag_copy = magnitude_t;
-                auto phase_copy = phase_t;
-                modifier.Apply(mag_copy, phase_copy, static_cast<int>(x), static_cast<int>(y),
-                               static_cast<int>(z), options.y_mode, options.z_mode);
+                std::vector<std::vector<float>> mag_copy;
+                std::vector<std::vector<float>> phase_copy;
+                std::size_t frame_selection = selected_frames[x];
 
-                const std::size_t frame_selection = static_cast<std::size_t>(
-                    static_cast<float>(x) / 7.0f * static_cast<float>(num_frames - 1));
+                // The legacy X-stretch reads the time-averaged envelope, so
+                // preserving it requires the complete analysis matrices.
+                // When X is source progression only, operate on the selected
+                // frame directly. This is both clearer and dramatically less
+                // expensive for long recordings.
+                if (options.apply_x_spectral_stretch) {
+                    mag_copy = magnitude_t;
+                    phase_copy = phase_t;
+                } else {
+                    mag_copy.assign(num_bins, std::vector<float>(1, 0.0f));
+                    phase_copy.assign(num_bins, std::vector<float>(1, 0.0f));
+                    for (std::size_t k = 0; k < num_bins; ++k) {
+                        mag_copy[k][0] = magnitude_t[k][frame_selection];
+                        phase_copy[k][0] = phase_t[k][frame_selection];
+                    }
+                    frame_selection = 0;
+                }
+
+                modifier.Apply(mag_copy, phase_copy, static_cast<int>(x), static_cast<int>(y),
+                               static_cast<int>(z), options.y_mode, options.z_mode,
+                               options.apply_x_spectral_stretch);
 
                 auto cell_oversampled = extractor.Extract(mag_copy, phase_copy, frame_selection);
 

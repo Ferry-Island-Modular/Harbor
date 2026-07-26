@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 
+#include "dsp/source_frame_selector.h"
 #include "dsp/spectral_modifier.h"
 
 namespace fim::dsp {
@@ -13,6 +14,8 @@ namespace fim::dsp {
 struct GenerateOptions {
     YMode y_mode = YMode::kTilt;
     ZMode z_mode = ZMode::kRandom;
+    FrameSelectionMode frame_selection = FrameSelectionMode::kUniform;
+    bool apply_x_spectral_stretch = true;
 
     // Leave unset for fresh variations in the interactive app. Evaluation
     // tools set this so identical inputs and options produce identical banks.

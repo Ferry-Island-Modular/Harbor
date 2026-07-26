@@ -222,6 +222,7 @@ qt_add_executable(fim-config-tool
     src/dsp/stft.cpp
     src/dsp/fft_resampler.cpp
     src/dsp/spectral_modifier.cpp
+    src/dsp/source_frame_selector.cpp
     src/dsp/cycle_extractor.cpp
     src/dsp/post_effects.cpp
     src/dsp/serum_loader.cpp
@@ -346,6 +347,7 @@ if(FIM_BUILD_EVAL_TOOLS)
         src/dsp/stft.cpp
         src/dsp/fft_resampler.cpp
         src/dsp/spectral_modifier.cpp
+        src/dsp/source_frame_selector.cpp
         src/dsp/cycle_extractor.cpp
         src/dsp/post_effects.cpp
         src/dsp/single_wav_generator.cpp

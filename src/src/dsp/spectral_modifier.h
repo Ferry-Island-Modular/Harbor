@@ -39,12 +39,12 @@ enum class ZMode {
 };
 
 // Applies the chosen Y and Z morph modes to a 2D magnitude/phase array in
-// place. Y runs first (matching Phase 3b and Python), then the X-driven
-// spectral envelope stretch operates on the Y-modified envelope, then the
-// Z mode applies phase-domain transformations.
+// place. Y runs first (matching Phase 3b and Python), then the optional
+// X-driven spectral envelope stretch operates on the Y-modified envelope,
+// then the Z mode applies phase-domain transformations.
 //
 // Parameter semantics:
-// - x in [0, 7]: spectral envelope stretch (0.5x..2.0x). Always applies.
+// - x in [0, 7]: spectral envelope stretch (0.5x..2.0x) when enabled.
 // - y in [0, 7]: strength of the Y morph mode. y=3 or 4 is roughly neutral.
 // - z in [0, 7]: strength of the Z morph mode. z=0 leaves phase untouched.
 // - y_mode: which Y transformation to apply.
@@ -67,7 +67,8 @@ public:
 
     // Default arguments preserve Phase 3b behavior (tilt + phase randomize).
     void Apply(std::vector<std::vector<float>>& magnitude, std::vector<std::vector<float>>& phase,
-               int x, int y, int z, YMode y_mode = YMode::kTilt, ZMode z_mode = ZMode::kRandom);
+               int x, int y, int z, YMode y_mode = YMode::kTilt, ZMode z_mode = ZMode::kRandom,
+               bool apply_x_spectral_stretch = true);
 
 private:
     std::mt19937 rng_;
