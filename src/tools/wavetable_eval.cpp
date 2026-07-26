@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -27,7 +28,7 @@ constexpr float kTau = 2.0f * std::numbers::pi_v<float>;
 constexpr std::uint32_t kGenerationSeed = 0x46494d31U;  // "FIM1"
 constexpr float kFixtureSeconds = 1.5f;
 constexpr float kPreviewSeconds = 3.0f;
-constexpr float kPreviewFrequency = 110.0f;
+constexpr float kDefaultPreviewFrequency = 110.0f;
 constexpr std::size_t kRenderBlockSize = 64;
 
 struct Fixture {
@@ -213,7 +214,8 @@ void SetPosition(fim::engine::WavetableVoice& voice, SweepAxis axis, float value
     voice.SetZ(axis == SweepAxis::kZ ? value : neutral);
 }
 
-bool RenderSweep(const fs::path& bank_directory, SweepAxis axis, const fs::path& output_path) {
+bool RenderSweep(const fs::path& bank_directory, SweepAxis axis, float preview_frequency,
+                 const fs::path& output_path) {
     auto loaded = fim::engine::WavetableBank::Load(bank_directory.string());
     if (!loaded) {
         return false;
@@ -221,7 +223,7 @@ bool RenderSweep(const fs::path& bank_directory, SweepAxis axis, const fs::path&
     std::shared_ptr<const fim::engine::WavetableBank> bank(std::move(loaded));
     fim::engine::WavetableVoice voice(static_cast<float>(kSampleRate));
     voice.SetBank(std::move(bank));
-    voice.SetFrequency(kPreviewFrequency);
+    voice.SetFrequency(preview_frequency);
     voice.SetPlaying(true);
     SetPosition(voice, axis, 0.0f);
 
@@ -278,7 +280,8 @@ bool GenerateFixture(const std::string& name, std::string_view origin, const fs:
                      const fs::path& output_root, const fs::path& banks_directory,
                      const fs::path& previews_directory,
                      const fim::dsp::SingleWavGenerator& generator,
-                     const fim::dsp::GenerateOptions& options, std::ofstream& manifest) {
+                     const fim::dsp::GenerateOptions& options, float preview_frequency,
+                     std::ofstream& manifest) {
     std::cout << "Generating " << name << "...\n";
     const fs::path bank_path = banks_directory / name;
     if (!generator.Generate(source_path, bank_path, options)) {
@@ -291,15 +294,15 @@ bool GenerateFixture(const std::string& name, std::string_view origin, const fs:
     for (std::size_t i = 0; i < axes.size(); ++i) {
         preview_paths[i] =
             previews_directory / (name + "_" + std::string(AxisName(axes[i])) + ".wav");
-        if (!RenderSweep(bank_path, axes[i], preview_paths[i])) {
+        if (!RenderSweep(bank_path, axes[i], preview_frequency, preview_paths[i])) {
             std::cerr << "Failed to render " << AxisName(axes[i]) << " preview for " << name
                       << '\n';
             return false;
         }
     }
 
-    manifest << name << ',' << origin << ',' << kGenerationSeed << ",tilt,random,"
-             << fs::relative(source_path, output_root).generic_string() << ','
+    manifest << name << ',' << origin << ',' << kGenerationSeed << ',' << preview_frequency
+             << ",tilt,random," << fs::relative(source_path, output_root).generic_string() << ','
              << fs::relative(bank_path, output_root).generic_string() << ','
              << fs::relative(preview_paths[0], output_root).generic_string() << ','
              << fs::relative(preview_paths[1], output_root).generic_string() << ','
@@ -307,7 +310,8 @@ bool GenerateFixture(const std::string& name, std::string_view origin, const fs:
     return true;
 }
 
-int Run(const fs::path& output_root, const std::vector<fs::path>& external_inputs) {
+int Run(const fs::path& output_root, const std::vector<fs::path>& external_inputs,
+        float preview_frequency) {
     const fs::path sources_directory = output_root / "sources";
     const fs::path banks_directory = output_root / "banks";
     const fs::path previews_directory = output_root / "previews";
@@ -325,7 +329,8 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
         std::cerr << "Unable to create evaluation manifest\n";
         return 1;
     }
-    manifest << "fixture,origin,seed,y_mode,z_mode,source,bank,x_preview,y_preview,z_preview\n";
+    manifest << "fixture,origin,seed,preview_frequency_hz,y_mode,z_mode,source,bank,x_preview,"
+                "y_preview,z_preview\n";
 
     fim::dsp::GenerateOptions options;
     options.random_seed = kGenerationSeed;
@@ -335,7 +340,7 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
         const fs::path source_path = sources_directory / (fixture.name + ".wav");
         if (!WriteMonoPcm16(source_path, fixture.samples) ||
             !GenerateFixture(fixture.name, "synthetic", source_path, output_root, banks_directory,
-                             previews_directory, generator, options, manifest)) {
+                             previews_directory, generator, options, preview_frequency, manifest)) {
             return 1;
         }
     }
@@ -360,7 +365,7 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
         fs::copy_file(input, copied_source, fs::copy_options::overwrite_existing, input_ec);
         if (input_ec ||
             !GenerateFixture(name, "external", copied_source, output_root, banks_directory,
-                             previews_directory, generator, options, manifest)) {
+                             previews_directory, generator, options, preview_frequency, manifest)) {
             if (input_ec) {
                 std::cerr << "Failed to copy external input " << input << ": " << input_ec.message()
                           << '\n';
@@ -377,13 +382,33 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
 
 int main(int argc, char** argv) {
     if (argc > 1 && std::string_view(argv[1]) == "--help") {
-        std::cout << "Usage: fim-wavetable-eval [output-directory] [input.wav ...]\n";
+        std::cout << "Usage: fim-wavetable-eval [--frequency HZ] [output-directory] "
+                     "[input.wav ...]\n";
         return 0;
     }
-    const fs::path output = argc >= 2 ? fs::path(argv[1]) : fs::path("evaluation-output");
+
+    float preview_frequency = kDefaultPreviewFrequency;
+    int next_argument = 1;
+    if (argc > 1 && std::string_view(argv[1]) == "--frequency") {
+        if (argc < 3) {
+            std::cerr << "--frequency requires a value in Hz\n";
+            return 2;
+        }
+        char* parse_end = nullptr;
+        preview_frequency = std::strtof(argv[2], &parse_end);
+        if (parse_end == argv[2] || *parse_end != '\0' || !std::isfinite(preview_frequency) ||
+            preview_frequency <= 0.0f || preview_frequency > 20000.0f) {
+            std::cerr << "Preview frequency must be a number between 0 and 20000 Hz\n";
+            return 2;
+        }
+        next_argument = 3;
+    }
+
+    const fs::path output =
+        next_argument < argc ? fs::path(argv[next_argument++]) : fs::path("evaluation-output");
     std::vector<fs::path> external_inputs;
-    for (int i = 2; i < argc; ++i) {
+    for (int i = next_argument; i < argc; ++i) {
         external_inputs.emplace_back(argv[i]);
     }
-    return Run(output, external_inputs);
+    return Run(output, external_inputs, preview_frequency);
 }

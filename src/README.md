@@ -58,3 +58,12 @@ baseline run alongside the synthetic fixtures:
 ```bash
 ./build/fim-wavetable-eval evaluation-output/baseline evaluation-corpus/real/*.wav
 ```
+
+The default preview oscillator frequency is 110 Hz. Use `--frequency` to keep
+the generated banks identical while rendering a separate lower-pitched
+listening set, for example:
+
+```bash
+./build/fim-wavetable-eval --frequency 55 evaluation-output/baseline-bass \
+    evaluation-corpus/real/*.wav
+```
