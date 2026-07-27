@@ -422,10 +422,11 @@ int RunThreeWavEvaluation(const fs::path& output_root, const std::vector<fs::pat
     }
 
     const std::array<fs::path, 3> paths = {inputs[0], inputs[1], inputs[2]};
-    constexpr std::array<std::pair<std::string_view, fim::dsp::ThreeWavZMode>, 3> modes = {
+    constexpr std::array<std::pair<std::string_view, fim::dsp::ThreeWavZMode>, 4> modes = {
         std::pair{"phase", fim::dsp::ThreeWavZMode::kPhase},
         std::pair{"odd_even", fim::dsp::ThreeWavZMode::kOddEven},
         std::pair{"crush", fim::dsp::ThreeWavZMode::kCrush},
+        std::pair{"harmonic_comb", fim::dsp::ThreeWavZMode::kHarmonicComb},
     };
     fim::dsp::ThreeWavGenerator generator;
     for (const auto& [name, mode] : modes) {

@@ -14,6 +14,7 @@ enum class ThreeWavZMode {
     kPhase,
     kOddEven,
     kCrush,
+    kHarmonicComb,
 };
 
 struct ThreeWavGenerateOptions {

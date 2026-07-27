@@ -95,7 +95,7 @@ three-wave axis designs:
 ```
 
 Serum evaluation renders every spectral-color × texture combination.
-Three-wave evaluation renders Phase Motion, Odd/Even, and Crush variants.
+Three-wave evaluation renders Phase Motion, Odd/Even, Crush, and Harmonic Comb variants.
 
 For controlled comparisons, the parts of candidate mode can also be
 selected independently:

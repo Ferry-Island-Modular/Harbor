@@ -32,6 +32,8 @@ fim::dsp::ThreeWavZMode ZModeFromIndex(int index) {
             return fim::dsp::ThreeWavZMode::kOddEven;
         case 2:
             return fim::dsp::ThreeWavZMode::kCrush;
+        case 3:
+            return fim::dsp::ThreeWavZMode::kHarmonicComb;
         case 0:
         default:
             return fim::dsp::ThreeWavZMode::kPhase;
@@ -39,7 +41,7 @@ fim::dsp::ThreeWavZMode ZModeFromIndex(int index) {
 }
 
 int ValidZModeIndex(int index) {
-    return std::clamp(index, 0, 2);
+    return std::clamp(index, 0, 3);
 }
 
 }  // namespace
@@ -137,7 +139,7 @@ QWidget* ThreeWavScreen::BuildFileSetPageContent(QWidget* parent) {
 
     layout->addLayout(columns_row, /*stretch=*/1);
 
-    const QStringList z_options{"Phase motion", "Odd / even", "Crush"};
+    const QStringList z_options{"Phase motion", "Odd / even", "Crush", "Harmonic comb"};
     z_selector_ = new AxisMorphSelector("Z axis — texture", z_options, content);
     z_selector_->SetCurrentIndex(ValidZModeIndex(settings()->ThreeWavZMorph()));
     layout->addWidget(z_selector_);

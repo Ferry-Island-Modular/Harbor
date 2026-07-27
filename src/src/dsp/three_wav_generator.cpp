@@ -63,12 +63,26 @@ std::vector<float> CoherentPhaseTarget(std::uint32_t seed) {
 
 std::vector<float> TextureIfft(std::vector<float> magnitude, const std::vector<float>& phases,
                                ThreeWavZMode mode, float amount, RealFft& fft) {
+    // Ease into the texture, then make the upper half of Z substantially more
+    // assertive. This preserves useful interpolation near the neutral page
+    // without wasting the far end of the hardware control on subtle changes.
+    const float strength = amount * amount * (3.0f - 2.0f * amount);
     std::vector<std::complex<float>> bins(kNumBins);
     bins[0] = std::complex<float>(magnitude[0], 0.0f);  // DC stays real
     for (std::size_t k = 1; k < kNumBins - 1; ++k) {
         if (mode == ThreeWavZMode::kOddEven) {
-            const float polarity = (k % 2 == 0) ? -1.0f : 1.0f;
-            magnitude[k] *= std::exp(polarity * amount * 1.25f);
+            // At the endpoint, strongly hollow out the even harmonics rather
+            // than applying a symmetric tilt that per-cell normalization can
+            // partly disguise.
+            const float target_gain = (k % 2 == 0) ? 0.04f : 1.5f;
+            magnitude[k] *= std::lerp(1.0f, target_gain, strength);
+        } else if (mode == ThreeWavZMode::kHarmonicComb) {
+            // Keep the fundamental and every fourth harmonic thereafter.
+            // The rejected partials are not hard-zeroed, so neighboring Z
+            // pages remain smooth and the input's spectral flavor survives.
+            const bool retained = ((k - 1) % 4) == 0;
+            const float target_gain = retained ? 1.75f : 0.025f;
+            magnitude[k] *= std::lerp(1.0f, target_gain, strength);
         }
         float phase = phases[k];
         if (mode == ThreeWavZMode::kPhase) {
