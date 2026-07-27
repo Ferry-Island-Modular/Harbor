@@ -149,15 +149,14 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
                     // source phase may vary along X, but the random target is
                     // stable across X/Y and Z only changes blend intensity.
                     SpectralModifier coherent_modifier(*coherent_phase_seed);
-                    coherent_modifier.Apply(
-                        mag_copy, phase_copy, static_cast<int>(x), static_cast<int>(y),
-                        static_cast<int>(z), options.y_mode, options.z_mode,
-                        options.apply_x_spectral_stretch);
+                    coherent_modifier.Apply(mag_copy, phase_copy, static_cast<int>(x),
+                                            static_cast<int>(y), static_cast<int>(z),
+                                            options.y_mode, options.z_mode,
+                                            options.apply_x_spectral_stretch);
                 } else {
                     legacy_modifier->Apply(mag_copy, phase_copy, static_cast<int>(x),
-                                           static_cast<int>(y), static_cast<int>(z),
-                                           options.y_mode, options.z_mode,
-                                           options.apply_x_spectral_stretch);
+                                           static_cast<int>(y), static_cast<int>(z), options.y_mode,
+                                           options.z_mode, options.apply_x_spectral_stretch);
                 }
 
                 auto cell_oversampled = extractor.Extract(mag_copy, phase_copy, frame_selection);

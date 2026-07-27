@@ -117,8 +117,7 @@ TEST_CASE("SpectralModifier with z>0 produces deterministic output for a fixed s
     }
 }
 
-TEST_CASE("Resetting a phase seed shares phase across Y treatments",
-          "[dsp][spectral_modifier]") {
+TEST_CASE("Resetting a phase seed shares phase across Y treatments", "[dsp][spectral_modifier]") {
     auto dark = MakeFlat(/*num_bins=*/16, /*num_frames=*/1);
     auto bright = MakeFlat(/*num_bins=*/16, /*num_frames=*/1);
     fim::dsp::SpectralModifier dark_modifier(/*seed=*/12345);

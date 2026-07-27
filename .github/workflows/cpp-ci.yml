@@ -42,19 +42,22 @@ jobs:
           - os: macos-latest
             qt_host: mac
             qt_arch: clang_64
-          # macos-26 dropped: Qt 6.8 still references the deprecated Apple AGL
-          # framework in its CMake config, and Apple removed AGL in macOS 26.
-          # Revisit when Qt fixes the cmake config OR when macos-latest itself
-          # rotates to macOS 26+.
+            qt_version: '6.10.2'
+          # Qt 6.8's macOS package references Apple's removed AGL framework.
+          # Qt 6.10 supports macOS 26; keep the established 6.8 package on
+          # Linux and Windows until a broader upgrade is useful.
           - os: ubuntu-latest
             qt_host: linux
             qt_arch: linux_gcc_64
+            qt_version: '6.8.3'
           - os: ubuntu-24.04-arm
             qt_host: linux_arm64
             qt_arch: linux_gcc_arm64
+            qt_version: '6.8.3'
           - os: windows-latest
             qt_host: windows
             qt_arch: win64_msvc2022_64
+            qt_version: '6.8.3'
 
     steps:
       - name: Checkout (with submodules)
@@ -77,10 +80,10 @@ jobs:
             libpulse-dev \
             libasound2-dev
 
-      - name: Install Qt 6.8
+      - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8.3'
+          version: ${{ matrix.qt_version }}
           host: ${{ matrix.qt_host }}
           target: desktop
           arch: ${{ matrix.qt_arch }}
