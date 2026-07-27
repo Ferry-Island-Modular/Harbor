@@ -76,6 +76,14 @@ TEST_CASE_METHOD(SettingsFixture, "Settings persists across instances", "[settin
     }
 }
 
+TEST_CASE_METHOD(SettingsFixture, "Settings persists any-wav source treatment", "[settings]") {
+    fim::app::Settings settings;
+    REQUIRE(settings.AnyWavSourceMode() == 0);
+
+    settings.SetAnyWavSourceMode(1);
+    REQUIRE(settings.AnyWavSourceMode() == 1);
+}
+
 TEST_CASE_METHOD(SettingsFixture, "Settings round-trips serum_y_morph", "[settings]") {
     fim::app::Settings settings;
     settings.SetSerumYMorph(2);

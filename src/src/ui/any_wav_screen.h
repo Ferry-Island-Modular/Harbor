@@ -4,6 +4,8 @@
 
 #include "ui/mode_screen_base.h"
 
+class QLabel;
+
 namespace fim::app {
 class SingleWavService;
 }
@@ -41,11 +43,14 @@ protected:
     QString OutputDirForPreview() const override;
 
 private slots:
+    void OnSourceModeChanged(int index);
     void OnYModeChanged(int index);
     void OnZModeChanged(int index);
 
 private:
     fim::app::SingleWavService* service_ = nullptr;
+    AxisMorphSelector* source_selector_ = nullptr;
+    QLabel* x_descriptor_ = nullptr;
     AxisMorphSelector* y_selector_ = nullptr;
     AxisMorphSelector* z_selector_ = nullptr;
 };

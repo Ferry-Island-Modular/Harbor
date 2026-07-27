@@ -44,6 +44,12 @@ public:
     int ZMorph() const;
     void SetZMorph(int index);
 
+    // ---- any_wav_source_mode ----
+    // 0 = focused salient-window progression (default), 1 = legacy
+    // full-source progression plus X spectral stretch.
+    int AnyWavSourceMode() const;
+    void SetAnyWavSourceMode(int index);
+
     // ---- serum_y_morph / serum_z_morph ----
     // Index into the Serum mode's 4-option AxisMorphSelector. Default
     // matches Python's SerumWavetableConverter: Y = 0 (FORMANT_SCALE),

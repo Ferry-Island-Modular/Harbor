@@ -50,6 +50,15 @@ fim::dsp::ZMode ZModeFromIndex(int index) {
     }
 }
 
+fim::dsp::SourceMode SourceModeFromIndex(int index) {
+    return index == 1 ? fim::dsp::SourceMode::kLegacyStretch : fim::dsp::SourceMode::kFocused;
+}
+
+QString SourceModeDescription(int index) {
+    return index == 1 ? "Scans the full source while stretching its spectrum"
+                      : "Scans spectrally distinct frames from a content-rich region";
+}
+
 }  // namespace
 
 AnyWavScreen::AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, fim::app::Settings* settings,
@@ -65,6 +74,7 @@ AnyWavScreen::AnyWavScreen(fim::engine::RealtimeAudioEngine* engine, fim::app::S
         QDir(QString::fromStdString(settings->OutputDir())).filePath("any_wav");
     service_->SetOutputDirectory(user_dir);
     service_->SetSamplesPerFrame(settings->SamplesPerFrame());
+    service_->SetSourceMode(SourceModeFromIndex(settings->AnyWavSourceMode()));
     service_->SetYMode(YModeFromIndex(settings->YMorph()));
     service_->SetZMode(ZModeFromIndex(settings->ZMorph()));
 
@@ -102,13 +112,21 @@ QWidget* AnyWavScreen::BuildFileSetPageContent(QWidget* parent) {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(16);
 
-    // X axis (fixed descriptor)
+    const QStringList source_options{"Focused", "Legacy stretch"};
+    source_selector_ = new AxisMorphSelector("Source treatment", source_options, content);
+    source_selector_->SetCurrentIndex(settings()->AnyWavSourceMode());
+    layout->addWidget(source_selector_);
+    connect(source_selector_, &AxisMorphSelector::currentIndexChanged, this,
+            &AnyWavScreen::OnSourceModeChanged);
+
+    // X-axis behavior follows the selected source treatment.
     auto* x_label = new QLabel("X axis", content);
     x_label->setObjectName("anyWavAxisLabel");
     layout->addWidget(x_label);
-    auto* x_descriptor = new QLabel("Scans the wave", content);
-    x_descriptor->setObjectName("anyWavAxisDescriptor");
-    layout->addWidget(x_descriptor);
+    x_descriptor_ = new QLabel(SourceModeDescription(settings()->AnyWavSourceMode()), content);
+    x_descriptor_->setObjectName("anyWavAxisDescriptor");
+    x_descriptor_->setWordWrap(true);
+    layout->addWidget(x_descriptor_);
 
     // Y axis selector with 4 morph modes.
     const QStringList y_options{"Tilt", "Formant", "Stretch", "Smear"};
@@ -148,6 +166,9 @@ void AnyWavScreen::OnClearHook() {
 }
 
 void AnyWavScreen::OnResetHook() {
+    if (source_selector_ != nullptr) {
+        source_selector_->SetCurrentIndex(settings()->AnyWavSourceMode());
+    }
     if (y_selector_ != nullptr) {
         y_selector_->SetCurrentIndex(settings()->YMorph());
     }
@@ -158,6 +179,14 @@ void AnyWavScreen::OnResetHook() {
 
 QString AnyWavScreen::OutputDirForPreview() const {
     return SingleWavOutputDir();
+}
+
+void AnyWavScreen::OnSourceModeChanged(int index) {
+    service_->SetSourceMode(SourceModeFromIndex(index));
+    settings()->SetAnyWavSourceMode(index);
+    if (x_descriptor_ != nullptr) {
+        x_descriptor_->setText(SourceModeDescription(index));
+    }
 }
 
 void AnyWavScreen::OnYModeChanged(int index) {

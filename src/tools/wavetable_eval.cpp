@@ -303,8 +303,9 @@ bool GenerateFixture(const std::string& name, std::string_view origin, const fs:
     }
 
     const std::string_view frame_selection =
-        options.frame_selection == fim::dsp::FrameSelectionMode::kSalientWindow ? "salient_window"
-                                                                                : "uniform";
+        options.frame_selection == fim::dsp::FrameSelectionMode::kSalientWindow
+            ? "salient_spectral_distance"
+            : "uniform";
     manifest << name << ',' << origin << ',' << kGenerationSeed << ',' << preview_frequency
              << ",tilt,random," << frame_selection << ','
              << (options.apply_x_spectral_stretch ? "enabled" : "disabled") << ','

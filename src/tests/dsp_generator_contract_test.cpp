@@ -22,9 +22,17 @@ TEST_CASE("Wavetable generators reject unsupported output dimensions", "[dsp][ge
     REQUIRE_THROWS_AS(fim::dsp::ThreeWavGenerator(2048, 4), std::invalid_argument);
 }
 
-TEST_CASE("Default generation options preserve legacy source mapping", "[dsp][generator]") {
-    const fim::dsp::GenerateOptions options;
+TEST_CASE("Default generation options use focused source mapping", "[dsp][generator]") {
+    fim::dsp::GenerateOptions options;
 
+    REQUIRE(options.frame_selection == fim::dsp::FrameSelectionMode::kSalientWindow);
+    REQUIRE_FALSE(options.apply_x_spectral_stretch);
+
+    options.SetSourceMode(fim::dsp::SourceMode::kLegacyStretch);
     REQUIRE(options.frame_selection == fim::dsp::FrameSelectionMode::kUniform);
     REQUIRE(options.apply_x_spectral_stretch);
+
+    options.SetSourceMode(fim::dsp::SourceMode::kFocused);
+    REQUIRE(options.frame_selection == fim::dsp::FrameSelectionMode::kSalientWindow);
+    REQUIRE_FALSE(options.apply_x_spectral_stretch);
 }

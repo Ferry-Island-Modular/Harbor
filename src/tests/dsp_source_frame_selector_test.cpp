@@ -41,3 +41,22 @@ TEST_CASE("Salient-window selection falls back to uniform for silence",
 
     REQUIRE(selected == std::vector<std::size_t>{0, 2, 4, 6, 8, 10, 12, 14});
 }
+
+TEST_CASE("Salient-window selection concentrates frames around spectral change",
+          "[dsp][source_frame_selector]") {
+    std::vector<std::vector<float>> magnitude(16, std::vector<float>(8, 0.0f));
+    for (std::size_t frame = 0; frame < magnitude.size(); ++frame) {
+        const std::size_t active_bin = frame < 12 ? 1 : frame - 10;
+        magnitude[frame][active_bin] = 1.0f;
+    }
+
+    const auto selected =
+        fim::dsp::SelectSourceFrames(magnitude, fim::dsp::FrameSelectionMode::kSalientWindow, 8);
+
+    REQUIRE(selected.front() == 0);
+    REQUIRE(selected.back() == 15);
+    REQUIRE(std::is_sorted(selected.begin(), selected.end()));
+    REQUIRE(std::adjacent_find(selected.begin(), selected.end()) == selected.end());
+    REQUIRE(std::count_if(selected.begin(), selected.end(),
+                          [](std::size_t frame) { return frame >= 11; }) >= 5);
+}

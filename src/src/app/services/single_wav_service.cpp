@@ -6,6 +6,10 @@ namespace fim::app {
 
 SingleWavService::SingleWavService(QObject* parent) : GenerateServiceBase(parent) {}
 
+void SingleWavService::SetSourceMode(fim::dsp::SourceMode mode) {
+    options_.SetSourceMode(mode);
+}
+
 void SingleWavService::SetYMode(fim::dsp::YMode mode) {
     options_.y_mode = mode;
 }

@@ -68,10 +68,13 @@ listening set, for example:
     evaluation-corpus/real/*.wav
 ```
 
-Use `--candidate` to compare the first qualitative strategy against that
-baseline. Candidate mode selects a salient, non-silent source window and
-dedicates X exclusively to progression through those frames, leaving spectral
-transformation to Y and Z:
+The Any WAV screen defaults to **Focused** source treatment. It selects a
+salient, non-silent source window, spaces frames with a blend of accumulated
+spectral change and chronological progress, and dedicates X exclusively to
+progression through those frames. **Legacy stretch** remains available in the
+screen's source-treatment selector.
+
+Use `--candidate` to reproduce Focused mode in the evaluation harness:
 
 ```bash
 ./build/fim-wavetable-eval --candidate --frequency 55 \
