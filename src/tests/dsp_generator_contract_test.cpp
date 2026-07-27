@@ -27,12 +27,15 @@ TEST_CASE("Default generation options use focused source mapping", "[dsp][genera
 
     REQUIRE(options.frame_selection == fim::dsp::FrameSelectionMode::kSalientWindow);
     REQUIRE_FALSE(options.apply_x_spectral_stretch);
+    REQUIRE(options.coherent_phase_randomization);
 
     options.SetSourceMode(fim::dsp::SourceMode::kLegacyStretch);
     REQUIRE(options.frame_selection == fim::dsp::FrameSelectionMode::kUniform);
     REQUIRE(options.apply_x_spectral_stretch);
+    REQUIRE_FALSE(options.coherent_phase_randomization);
 
     options.SetSourceMode(fim::dsp::SourceMode::kFocused);
     REQUIRE(options.frame_selection == fim::dsp::FrameSelectionMode::kSalientWindow);
     REQUIRE_FALSE(options.apply_x_spectral_stretch);
+    REQUIRE(options.coherent_phase_randomization);
 }

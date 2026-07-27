@@ -73,6 +73,9 @@ def summarize_bank(bank_dir: Path, modules: dict) -> dict:
     for issue in report.step_issues:
         step_counts[issue.metric] += 1
         step_axis_counts[f"{issue.axis}_{issue.metric}"] += 1
+    dead_axis_counts = defaultdict(int)
+    for segment in report.dead_segments:
+        dead_axis_counts[segment.axis] += 1
 
     regularity = {}
     if report.regularity is not None:
@@ -88,6 +91,7 @@ def summarize_bank(bank_dir: Path, modules: dict) -> dict:
         "energy_above_harmonic_400": float(np.mean(energy_above_harmonic_400)),
         "silent_segments": len(report.silent_segments),
         "dead_segments": len(report.dead_segments),
+        **{f"dead_{axis}_segments": count for axis, count in dead_axis_counts.items()},
         "wrap_failures": len(report.wrap_failures),
         **{f"step_{name}": count for name, count in step_counts.items()},
         **{f"step_{name}": count for name, count in step_axis_counts.items()},

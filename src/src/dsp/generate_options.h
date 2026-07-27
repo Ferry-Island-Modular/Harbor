@@ -21,6 +21,10 @@ struct GenerateOptions {
     ZMode z_mode = ZMode::kRandom;
     FrameSelectionMode frame_selection = FrameSelectionMode::kSalientWindow;
     bool apply_x_spectral_stretch = false;
+    // Reuse one random-phase field throughout the bank so Y neighbours share
+    // phase and Z progresses toward a stable target. Legacy mode deliberately
+    // keeps its original independent RNG stream.
+    bool coherent_phase_randomization = true;
 
     // Leave unset for fresh variations in the interactive app. Evaluation
     // tools set this so identical inputs and options produce identical banks.
@@ -31,6 +35,7 @@ struct GenerateOptions {
         frame_selection =
             legacy ? FrameSelectionMode::kUniform : FrameSelectionMode::kSalientWindow;
         apply_x_spectral_stretch = legacy;
+        coherent_phase_randomization = !legacy;
     }
 };
 

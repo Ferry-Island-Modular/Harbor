@@ -117,6 +117,24 @@ TEST_CASE("SpectralModifier with z>0 produces deterministic output for a fixed s
     }
 }
 
+TEST_CASE("Resetting a phase seed shares phase across Y treatments",
+          "[dsp][spectral_modifier]") {
+    auto dark = MakeFlat(/*num_bins=*/16, /*num_frames=*/1);
+    auto bright = MakeFlat(/*num_bins=*/16, /*num_frames=*/1);
+    fim::dsp::SpectralModifier dark_modifier(/*seed=*/12345);
+    fim::dsp::SpectralModifier bright_modifier(/*seed=*/12345);
+
+    dark_modifier.Apply(dark.magnitude, dark.phase, /*x=*/3, /*y=*/0, /*z=*/5,
+                        fim::dsp::YMode::kTilt, fim::dsp::ZMode::kRandom,
+                        /*apply_x_spectral_stretch=*/false);
+    bright_modifier.Apply(bright.magnitude, bright.phase, /*x=*/3, /*y=*/7, /*z=*/5,
+                          fim::dsp::YMode::kTilt, fim::dsp::ZMode::kRandom,
+                          /*apply_x_spectral_stretch=*/false);
+
+    REQUIRE(dark.phase == bright.phase);
+    REQUIRE(dark.magnitude != bright.magnitude);
+}
+
 TEST_CASE("SpectralModifier formant mode moves the peak bin", "[dsp][spectral_modifier]") {
     // Build a spectrum with a clear peak at bin 5.
     const std::size_t num_bins = 16;

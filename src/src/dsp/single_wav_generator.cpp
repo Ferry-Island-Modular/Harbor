@@ -5,6 +5,8 @@
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <random>
 #include <stdexcept>
 #include <vector>
 
@@ -88,11 +90,24 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
 
     CycleExtractor extractor(kStftFftSize, n_samples_);
     FftResampler downsampler(n_samples_, samples_);
+    std::optional<std::uint32_t> coherent_phase_seed;
+    if (options.coherent_phase_randomization && options.z_mode == ZMode::kRandom) {
+        coherent_phase_seed = options.random_seed.has_value()
+                                  ? *options.random_seed
+                                  : static_cast<std::uint32_t>(std::random_device{}());
+    }
 
     for (std::size_t z = 0; z < num_pages_; ++z) {
-        auto modifier = options.random_seed.has_value()
-                            ? SpectralModifier(*options.random_seed + static_cast<std::uint32_t>(z))
-                            : SpectralModifier();
+        // This is the original RNG stream used by Legacy mode: one modifier
+        // per page, consumed sequentially by its 64 cells.
+        std::optional<SpectralModifier> legacy_modifier;
+        if (!coherent_phase_seed.has_value()) {
+            if (options.random_seed.has_value()) {
+                legacy_modifier.emplace(*options.random_seed + static_cast<std::uint32_t>(z));
+            } else {
+                legacy_modifier.emplace();
+            }
+        }
 
         // Precompute the Z-crush params for this page if crush mode is
         // selected. We use `z` (the page index) as the crush intensity so
@@ -129,9 +144,21 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
                     frame_selection = 0;
                 }
 
-                modifier.Apply(mag_copy, phase_copy, static_cast<int>(x), static_cast<int>(y),
-                               static_cast<int>(z), options.y_mode, options.z_mode,
-                               options.apply_x_spectral_stretch);
+                if (coherent_phase_seed.has_value()) {
+                    // Reset to the same seed for every cell and page. The
+                    // source phase may vary along X, but the random target is
+                    // stable across X/Y and Z only changes blend intensity.
+                    SpectralModifier coherent_modifier(*coherent_phase_seed);
+                    coherent_modifier.Apply(
+                        mag_copy, phase_copy, static_cast<int>(x), static_cast<int>(y),
+                        static_cast<int>(z), options.y_mode, options.z_mode,
+                        options.apply_x_spectral_stretch);
+                } else {
+                    legacy_modifier->Apply(mag_copy, phase_copy, static_cast<int>(x),
+                                           static_cast<int>(y), static_cast<int>(z),
+                                           options.y_mode, options.z_mode,
+                                           options.apply_x_spectral_stretch);
+                }
 
                 auto cell_oversampled = extractor.Extract(mag_copy, phase_copy, frame_selection);
 

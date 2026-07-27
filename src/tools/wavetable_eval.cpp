@@ -309,6 +309,7 @@ bool GenerateFixture(const std::string& name, std::string_view origin, const fs:
     manifest << name << ',' << origin << ',' << kGenerationSeed << ',' << preview_frequency
              << ",tilt,random," << frame_selection << ','
              << (options.apply_x_spectral_stretch ? "enabled" : "disabled") << ','
+             << (options.coherent_phase_randomization ? "coherent" : "independent") << ','
              << fs::relative(source_path, output_root).generic_string() << ','
              << fs::relative(bank_path, output_root).generic_string() << ','
              << fs::relative(preview_paths[0], output_root).generic_string() << ','
@@ -319,7 +320,7 @@ bool GenerateFixture(const std::string& name, std::string_view origin, const fs:
 
 int Run(const fs::path& output_root, const std::vector<fs::path>& external_inputs,
         float preview_frequency, fim::dsp::FrameSelectionMode frame_selection,
-        bool apply_x_spectral_stretch) {
+        bool apply_x_spectral_stretch, bool coherent_phase_randomization) {
     const fs::path sources_directory = output_root / "sources";
     const fs::path banks_directory = output_root / "banks";
     const fs::path previews_directory = output_root / "previews";
@@ -338,12 +339,14 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
         return 1;
     }
     manifest << "fixture,origin,seed,preview_frequency_hz,y_mode,z_mode,frame_selection,"
-                "x_spectral_stretch,source,bank,x_preview,y_preview,z_preview\n";
+                "x_spectral_stretch,phase_randomization,source,bank,x_preview,y_preview,"
+                "z_preview\n";
 
     fim::dsp::GenerateOptions options;
     options.random_seed = kGenerationSeed;
     options.frame_selection = frame_selection;
     options.apply_x_spectral_stretch = apply_x_spectral_stretch;
+    options.coherent_phase_randomization = coherent_phase_randomization;
     fim::dsp::SingleWavGenerator generator;
 
     for (const auto& fixture : BuildCorpus()) {
@@ -395,13 +398,15 @@ int main(int argc, char** argv) {
     bool candidate_mode = false;
     std::optional<fim::dsp::FrameSelectionMode> requested_frame_selection;
     std::optional<bool> requested_x_spectral_stretch;
+    std::optional<bool> requested_coherent_phase;
     int next_argument = 1;
     while (next_argument < argc) {
         const std::string_view argument(argv[next_argument]);
         if (argument == "--help") {
             std::cout << "Usage: fim-wavetable-eval [--candidate] "
                          "[--frame-selection uniform|salient] "
-                         "[--x-stretch enabled|disabled] [--frequency HZ] "
+                         "[--x-stretch enabled|disabled] "
+                         "[--phase-randomization coherent|independent] [--frequency HZ] "
                          "[output-directory] [input.wav ...]\n";
             return 0;
         }
@@ -444,6 +449,23 @@ int main(int argc, char** argv) {
             next_argument += 2;
             continue;
         }
+        if (argument == "--phase-randomization") {
+            if (next_argument + 1 >= argc) {
+                std::cerr << "--phase-randomization requires coherent or independent\n";
+                return 2;
+            }
+            const std::string_view value(argv[next_argument + 1]);
+            if (value == "coherent") {
+                requested_coherent_phase = true;
+            } else if (value == "independent") {
+                requested_coherent_phase = false;
+            } else {
+                std::cerr << "--phase-randomization requires coherent or independent\n";
+                return 2;
+            }
+            next_argument += 2;
+            continue;
+        }
         if (argument != "--frequency") {
             if (argument.starts_with("--")) {
                 std::cerr << "Unknown option: " << argument << '\n';
@@ -476,6 +498,8 @@ int main(int argc, char** argv) {
         candidate_mode ? fim::dsp::FrameSelectionMode::kSalientWindow
                        : fim::dsp::FrameSelectionMode::kUniform);
     const bool apply_x_spectral_stretch = requested_x_spectral_stretch.value_or(!candidate_mode);
+    const bool coherent_phase_randomization =
+        requested_coherent_phase.value_or(candidate_mode);
     return Run(output, external_inputs, preview_frequency, frame_selection,
-               apply_x_spectral_stretch);
+               apply_x_spectral_stretch, coherent_phase_randomization);
 }

@@ -71,8 +71,10 @@ listening set, for example:
 The Any WAV screen defaults to **Focused** source treatment. It selects a
 salient, non-silent source window, spaces frames with a blend of accumulated
 spectral change and chronological progress, and dedicates X exclusively to
-progression through those frames. **Legacy stretch** remains available in the
-screen's source-treatment selector.
+progression through those frames. Its random-phase Z treatment uses a stable
+target throughout the bank, making Y neighbours phase-aligned and Z a
+progressive move toward one texture. **Legacy stretch** remains available in
+the screen's source-treatment selector and retains its independent phase RNG.
 
 Use `--candidate` to reproduce Focused mode in the evaluation harness:
 
@@ -81,7 +83,7 @@ Use `--candidate` to reproduce Focused mode in the evaluation harness:
     evaluation-output/candidate-source-selection-bass evaluation-corpus/real/*.wav
 ```
 
-For controlled comparisons, the two parts of candidate mode can also be
+For controlled comparisons, the parts of candidate mode can also be
 selected independently:
 
 ```bash
@@ -92,6 +94,11 @@ selected independently:
 # Change X behavior only; retain uniform source-frame selection.
 ./build/fim-wavetable-eval --frame-selection uniform --x-stretch disabled \
     --frequency 55 evaluation-output/uniform-without-stretch-bass
+
+# Compare only the phase treatment while retaining focused frame/X behavior.
+./build/fim-wavetable-eval --frame-selection salient --x-stretch disabled \
+    --phase-randomization independent --frequency 55 \
+    evaluation-output/focused-independent-phase-bass
 ```
 
 The generated banks can be compared with the audit and spectral modules from
