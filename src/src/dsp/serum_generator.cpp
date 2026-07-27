@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "dr_wav.h"
+#include "dsp/post_effects.h"
 #include "dsp/serum_loader.h"
 #include "dsp/serum_morpher.h"
 
@@ -19,6 +20,13 @@ namespace {
 constexpr std::size_t kCellsPerSide = 8;
 constexpr std::size_t kCellsPerPage = kCellsPerSide * kCellsPerSide;  // 64
 constexpr std::uint32_t kOutputSampleRate = 44100;
+
+float BipolarFormantAmount(std::size_t position) {
+    constexpr float kAmounts[8] = {
+        0.0f, 1.0f / 6.0f, 1.0f / 3.0f, 0.5f, 0.5f, 2.0f / 3.0f, 5.0f / 6.0f, 1.0f,
+    };
+    return kAmounts[std::min(position, std::size_t{7})];
+}
 
 }  // namespace
 
@@ -54,6 +62,7 @@ bool SerumGenerator::Generate(const std::filesystem::path& input_audio_path,
     for (const auto& frame : loaded->frames) {
         source_caches.push_back(morpher.ComputeCache(frame));
     }
+    morpher.AlignSourcePhases(source_caches);
 
     // Step 4: frequency-domain interpolate to exactly 8 caches (one per
     // X position in the output wavetable grid).
@@ -67,7 +76,9 @@ bool SerumGenerator::Generate(const std::filesystem::path& input_audio_path,
         const float z_amount = static_cast<float>(z) / 7.0f;
 
         for (std::size_t y = 0; y < kCellsPerSide; ++y) {
-            const float y_amount = static_cast<float>(y) / 7.0f;
+            const float y_amount = options.y_mode == SerumMode::kFormant
+                                       ? BipolarFormantAmount(y)
+                                       : static_cast<float>(y) / 7.0f;
             for (std::size_t x = 0; x < kCellsPerSide; ++x) {
                 // Apply Y morph.
                 const auto y_morphed = morpher.Apply(x_caches[x], options.y_mode, y_amount);
@@ -91,6 +102,10 @@ bool SerumGenerator::Generate(const std::filesystem::path& input_audio_path,
 
                 // Inverse FFT back to time domain.
                 auto cell = morpher.InverseFft(z_morphed);
+                if (options.z_mode == SerumMode::kCrush) {
+                    const auto crush = ZCrushAmount(static_cast<int>(z));
+                    ZCrush(cell, crush.bit_depth, crush.sample_hold);
+                }
 
                 // Remove DC from the cell.
                 float dc_sum = 0.0f;

@@ -16,7 +16,9 @@
 
 #include "dr_wav.h"
 #include "dsp/generate_options.h"
+#include "dsp/serum_generator.h"
 #include "dsp/single_wav_generator.h"
+#include "dsp/three_wav_generator.h"
 #include "engine/wavetable_bank.h"
 #include "engine/wavetable_voice.h"
 
@@ -248,6 +250,19 @@ bool RenderSweep(const fs::path& bank_directory, SweepAxis axis, float preview_f
     return WriteMonoPcm16(output_path, preview);
 }
 
+bool RenderAllSweeps(const fs::path& bank_directory, const fs::path& previews_directory,
+                     std::string_view name, float preview_frequency) {
+    constexpr std::array<SweepAxis, 3> axes = {SweepAxis::kX, SweepAxis::kY, SweepAxis::kZ};
+    for (const auto axis : axes) {
+        const fs::path preview =
+            previews_directory / (std::string(name) + "_" + std::string(AxisName(axis)) + ".wav");
+        if (!RenderSweep(bank_directory, axis, preview_frequency, preview)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::vector<Fixture> BuildCorpus() {
     std::vector<Fixture> fixtures;
     fixtures.push_back({"harmonic_sustain", MakeHarmonicSustain()});
@@ -391,9 +406,90 @@ int Run(const fs::path& output_root, const std::vector<fs::path>& external_input
     return 0;
 }
 
+int RunThreeWavEvaluation(const fs::path& output_root, const std::vector<fs::path>& inputs,
+                          float preview_frequency) {
+    if (inputs.size() != 3) {
+        std::cerr << "--three-wave requires exactly three input WAV files\n";
+        return 2;
+    }
+    const fs::path banks = output_root / "banks";
+    const fs::path previews = output_root / "previews";
+    std::error_code ec;
+    fs::create_directories(banks, ec);
+    fs::create_directories(previews, ec);
+    if (ec) {
+        return 1;
+    }
+
+    const std::array<fs::path, 3> paths = {inputs[0], inputs[1], inputs[2]};
+    constexpr std::array<std::pair<std::string_view, fim::dsp::ThreeWavZMode>, 3> modes = {
+        std::pair{"phase", fim::dsp::ThreeWavZMode::kPhase},
+        std::pair{"odd_even", fim::dsp::ThreeWavZMode::kOddEven},
+        std::pair{"crush", fim::dsp::ThreeWavZMode::kCrush},
+    };
+    fim::dsp::ThreeWavGenerator generator;
+    for (const auto& [name, mode] : modes) {
+        fim::dsp::ThreeWavGenerateOptions options;
+        options.z_mode = mode;
+        options.random_seed = kGenerationSeed;
+        const fs::path bank = banks / name;
+        if (!generator.Generate(paths, bank, options) ||
+            !RenderAllSweeps(bank, previews, name, preview_frequency)) {
+            std::cerr << "Failed three-wave evaluation mode " << name << '\n';
+            return 1;
+        }
+    }
+    std::cout << "Three-wave evaluation written to " << output_root << '\n';
+    return 0;
+}
+
+int RunSerumEvaluation(const fs::path& output_root, const std::vector<fs::path>& inputs,
+                       float preview_frequency) {
+    if (inputs.size() != 1) {
+        std::cerr << "--serum requires exactly one Serum-format input WAV\n";
+        return 2;
+    }
+    const fs::path banks = output_root / "banks";
+    const fs::path previews = output_root / "previews";
+    std::error_code ec;
+    fs::create_directories(banks, ec);
+    fs::create_directories(previews, ec);
+    if (ec) {
+        return 1;
+    }
+
+    constexpr std::array<std::pair<std::string_view, fim::dsp::SerumMode>, 3> y_modes = {
+        std::pair{"formant", fim::dsp::SerumMode::kFormant},
+        std::pair{"smear", fim::dsp::SerumMode::kSmear},
+        std::pair{"stretch", fim::dsp::SerumMode::kStretch},
+    };
+    constexpr std::array<std::pair<std::string_view, fim::dsp::SerumMode>, 3> z_modes = {
+        std::pair{"phase", fim::dsp::SerumMode::kPhase},
+        std::pair{"odd_even", fim::dsp::SerumMode::kOddEven},
+        std::pair{"crush", fim::dsp::SerumMode::kCrush},
+    };
+    fim::dsp::SerumGenerator generator;
+    for (const auto& [y_name, y_mode] : y_modes) {
+        for (const auto& [z_name, z_mode] : z_modes) {
+            const std::string name = std::string(y_name) + "_" + std::string(z_name);
+            const fim::dsp::SerumGenerateOptions options{.y_mode = y_mode, .z_mode = z_mode};
+            const fs::path bank = banks / name;
+            if (!generator.Generate(inputs.front(), bank, options) ||
+                !RenderAllSweeps(bank, previews, name, preview_frequency)) {
+                std::cerr << "Failed Serum evaluation mode " << name << '\n';
+                return 1;
+            }
+        }
+    }
+    std::cout << "Serum evaluation written to " << output_root << '\n';
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
+    enum class EvaluationMode { kSingle, kSerum, kThreeWav };
+    EvaluationMode evaluation_mode = EvaluationMode::kSingle;
     float preview_frequency = kDefaultPreviewFrequency;
     bool candidate_mode = false;
     std::optional<fim::dsp::FrameSelectionMode> requested_frame_selection;
@@ -403,12 +499,22 @@ int main(int argc, char** argv) {
     while (next_argument < argc) {
         const std::string_view argument(argv[next_argument]);
         if (argument == "--help") {
-            std::cout << "Usage: fim-wavetable-eval [--candidate] "
+            std::cout << "Usage: fim-wavetable-eval [--candidate|--serum|--three-wave] "
                          "[--frame-selection uniform|salient] "
                          "[--x-stretch enabled|disabled] "
                          "[--phase-randomization coherent|independent] [--frequency HZ] "
                          "[output-directory] [input.wav ...]\n";
             return 0;
+        }
+        if (argument == "--serum") {
+            evaluation_mode = EvaluationMode::kSerum;
+            ++next_argument;
+            continue;
+        }
+        if (argument == "--three-wave") {
+            evaluation_mode = EvaluationMode::kThreeWav;
+            ++next_argument;
+            continue;
         }
         if (argument == "--candidate") {
             candidate_mode = true;
@@ -494,12 +600,17 @@ int main(int argc, char** argv) {
     for (int i = next_argument; i < argc; ++i) {
         external_inputs.emplace_back(argv[i]);
     }
+    if (evaluation_mode == EvaluationMode::kSerum) {
+        return RunSerumEvaluation(output, external_inputs, preview_frequency);
+    }
+    if (evaluation_mode == EvaluationMode::kThreeWav) {
+        return RunThreeWavEvaluation(output, external_inputs, preview_frequency);
+    }
     const auto frame_selection = requested_frame_selection.value_or(
         candidate_mode ? fim::dsp::FrameSelectionMode::kSalientWindow
                        : fim::dsp::FrameSelectionMode::kUniform);
     const bool apply_x_spectral_stretch = requested_x_spectral_stretch.value_or(!candidate_mode);
-    const bool coherent_phase_randomization =
-        requested_coherent_phase.value_or(candidate_mode);
+    const bool coherent_phase_randomization = requested_coherent_phase.value_or(candidate_mode);
     return Run(output, external_inputs, preview_frequency, frame_selection,
                apply_x_spectral_stretch, coherent_phase_randomization);
 }

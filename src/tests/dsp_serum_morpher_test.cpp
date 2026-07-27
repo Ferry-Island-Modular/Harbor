@@ -26,6 +26,14 @@ std::vector<float> MakeCosineFrame(std::size_t bin) {
     return frame;
 }
 
+std::vector<float> MakePhaseShiftedCosineFrame(std::size_t bin, float phase) {
+    std::vector<float> frame(kFftSize);
+    for (std::size_t i = 0; i < kFftSize; ++i) {
+        frame[i] = std::cos(2.0f * kPi * static_cast<float>(bin) * i / kFftSize + phase);
+    }
+    return frame;
+}
+
 }  // namespace
 
 TEST_CASE("SerumMorpher cache contains correct amplitudes for a cosine", "[dsp][serum_morpher]") {
@@ -79,6 +87,37 @@ TEST_CASE("SerumMorpher interpolates N source caches to exactly 8 output caches"
         }
     }
     REQUIRE(peak_bin == 8);
+}
+
+TEST_CASE("SerumMorpher aligns arbitrary cycle starts before interpolation",
+          "[dsp][serum_morpher]") {
+    fim::dsp::SerumMorpher morpher;
+    std::vector<fim::dsp::SerumFftCache> sources;
+    sources.push_back(morpher.ComputeCache(MakePhaseShiftedCosineFrame(7, 0.0f)));
+    sources.push_back(morpher.ComputeCache(MakePhaseShiftedCosineFrame(7, 1.7f)));
+
+    morpher.AlignSourcePhases(sources);
+
+    const float phase_delta =
+        std::remainder(sources[1].phases[7] - sources[0].phases[7], 2.0f * kPi);
+    // Integer circular shifts cannot generally correct a phase offset to
+    // better than half a sample at the tested harmonic.
+    REQUIRE_THAT(phase_delta, WithinAbs(0.0f, kPi * 7.0f / kFftSize + 1e-4f));
+}
+
+TEST_CASE("SerumMorpher circularly interpolates phase instead of snapping",
+          "[dsp][serum_morpher]") {
+    fim::dsp::SerumMorpher morpher;
+    std::vector<fim::dsp::SerumFftCache> sources;
+    sources.push_back(morpher.ComputeCache(MakePhaseShiftedCosineFrame(5, 0.0f)));
+    sources.push_back(morpher.ComputeCache(MakePhaseShiftedCosineFrame(5, kPi / 2.0f)));
+
+    const auto interpolated = morpher.InterpolateCaches(sources, 3);
+    const float first = interpolated[0].phases[5];
+    const float middle = interpolated[1].phases[5];
+    const float last = interpolated[2].phases[5];
+    REQUIRE(std::abs(std::remainder(middle - first, 2.0f * kPi)) > 0.2f);
+    REQUIRE(std::abs(std::remainder(last - middle, 2.0f * kPi)) > 0.2f);
 }
 
 TEST_CASE("SerumMorpher formant scale at amount=0.5 keeps peak roughly in place",

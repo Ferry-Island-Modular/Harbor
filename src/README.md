@@ -83,6 +83,20 @@ Use `--candidate` to reproduce Focused mode in the evaluation harness:
     evaluation-output/candidate-source-selection-bass evaluation-corpus/real/*.wav
 ```
 
+The same tool can render complete bass-preview matrices for the Serum and
+three-wave axis designs:
+
+```bash
+./build/fim-wavetable-eval --serum --frequency 55 \
+  evaluation-output/serum-axis-candidate input-serum-table.wav
+
+./build/fim-wavetable-eval --three-wave --frequency 55 \
+  evaluation-output/three-wave-axis-candidate source-a.wav source-b.wav source-c.wav
+```
+
+Serum evaluation renders every spectral-color × texture combination.
+Three-wave evaluation renders Phase Motion, Odd/Even, and Crush variants.
+
 For controlled comparisons, the parts of candidate mode can also be
 selected independently:
 

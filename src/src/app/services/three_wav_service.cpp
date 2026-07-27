@@ -32,15 +32,21 @@ bool ThreeWavService::AllFilesSet() const {
     return true;
 }
 
+void ThreeWavService::SetZMode(fim::dsp::ThreeWavZMode mode) {
+    options_.z_mode = mode;
+}
+
 GenerateServiceBase::GenerationTask ThreeWavService::CreateGenerationTask() const {
     std::array<std::filesystem::path, 3> input_paths;
     for (std::size_t i = 0; i < 3; ++i) {
         input_paths[i] = std::filesystem::path(files_[i].toStdString());
     }
-    return [input_paths](const std::filesystem::path& /*input*/,
-                         const std::filesystem::path& output, const ProgressCallback& progress_cb) {
+    const auto options = options_;
+    return [input_paths, options](const std::filesystem::path& /*input*/,
+                                  const std::filesystem::path& output,
+                                  const ProgressCallback& progress_cb) {
         fim::dsp::ThreeWavGenerator generator;
-        return generator.Generate(input_paths, output, progress_cb);
+        return generator.Generate(input_paths, output, options, progress_cb);
     };
 }
 

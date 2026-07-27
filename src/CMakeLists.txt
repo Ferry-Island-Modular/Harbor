@@ -367,6 +367,11 @@ if(FIM_BUILD_EVAL_TOOLS)
         src/dsp/source_frame_selector.cpp
         src/dsp/cycle_extractor.cpp
         src/dsp/post_effects.cpp
+        src/dsp/resample.cpp
+        src/dsp/serum_loader.cpp
+        src/dsp/serum_morpher.cpp
+        src/dsp/serum_generator.cpp
+        src/dsp/three_wav_generator.cpp
         src/dsp/single_wav_generator.cpp
     )
     target_include_directories(fim-wavetable-eval PRIVATE src)
@@ -375,6 +380,7 @@ if(FIM_BUILD_EVAL_TOOLS)
         pffft
         miniaudio_headers
         dr_wav_headers
+        SampleRate::samplerate
     )
     set_target_properties(fim-wavetable-eval PROPERTIES
         AUTOMOC OFF

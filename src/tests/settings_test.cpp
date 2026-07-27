@@ -98,6 +98,9 @@ TEST_CASE_METHOD(SettingsFixture, "Settings round-trips serum_z_morph", "[settin
     REQUIRE(settings.SerumZMorph() == 3);
     settings.SetSerumZMorph(1);
     REQUIRE(settings.SerumZMorph() == 1);
+
+    settings.SetThreeWavZMorph(2);
+    REQUIRE(settings.ThreeWavZMorph() == 2);
 }
 
 TEST_CASE_METHOD(SettingsFixture, "Settings serum morph defaults are 0 and 1", "[settings]") {

@@ -2,17 +2,39 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <optional>
 #include <vector>
 
 namespace fim::dsp {
 
-// Three-wav mode wavetable generator. Takes 3 arbitrary .wav files, one
-// per axis, and builds an 8x8x8 wavetable grid where each cell's
-// spectrum is a weighted sum of the 3 files' time-averaged magnitudes,
-// with weights proportional to the cell's (X, Y, Z) position. Zero-
-// phase inverse FFT produces the output waveform.
+enum class ThreeWavZMode {
+    kPhase,
+    kOddEven,
+    kCrush,
+};
+
+struct ThreeWavGenerateOptions {
+    ThreeWavZMode z_mode = ThreeWavZMode::kPhase;
+    std::optional<std::uint32_t> random_seed = 0xF04CEAu;
+};
+
+struct ThreeWavWeights {
+    float a;
+    float b;
+    float c;
+};
+
+// X crossfades A->B and Y pulls that result strongly toward C. A small A/B
+// contribution remains at maximum Y so the top grid row retains X motion.
+// Z is left free for an independent texture axis.
+ThreeWavWeights ThreeWavBarycentricWeights(float x_amount, float y_amount);
+
+// Three-wav mode wavetable generator. Each file contributes a time-averaged
+// magnitude spectrum. X crossfades A->B, Y pulls toward C, and Z applies a
+// coherent texture transformation.
 //
 // Input files are silently resampled to 44.1 kHz if needed — users
 // shouldn't have to think about sample rates.
@@ -31,6 +53,10 @@ public:
     // The 3 input paths are required; all must be non-empty and loadable.
     bool Generate(const std::array<std::filesystem::path, 3>& input_paths,
                   const std::filesystem::path& output_directory,
+                  const ProgressCallback& on_progress = {}) const;
+    bool Generate(const std::array<std::filesystem::path, 3>& input_paths,
+                  const std::filesystem::path& output_directory,
+                  const ThreeWavGenerateOptions& options,
                   const ProgressCallback& on_progress = {}) const;
 
     std::size_t samples() const { return samples_; }

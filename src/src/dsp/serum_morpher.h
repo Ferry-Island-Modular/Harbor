@@ -15,6 +15,8 @@ enum class SerumMode {
     kPhase,    // Frequency-dependent phase rotation (comb-filter-like)
     kSmear,    // Running-average amplitude smoothing
     kStretch,  // Octave-based inharmonic stretching (1× to 12×)
+    kOddEven,  // Progressively emphasizes odd over even harmonics
+    kCrush,    // Time-domain texture handled by SerumGenerator
 };
 
 // Pre-computed FFT data for a single 2048-sample frame. Holds both the
@@ -43,10 +45,15 @@ public:
     // must have exactly 2048 samples.
     SerumFftCache ComputeCache(const std::vector<float>& frame);
 
+    // Circularly align each source cache to its predecessor using a
+    // weighted multi-harmonic correlation search. This removes arbitrary
+    // cycle-start offsets before X interpolation.
+    void AlignSourcePhases(std::vector<SerumFftCache>& sources) const;
+
     // Interpolate N source FFT caches to `output_count` caches via
     // frequency-domain linear interpolation. Magnitudes are linearly
-    // lerped between the two nearest source caches; phases are taken
-    // from the NEAREST source cache (no phase unwrapping).
+    // lerped between the two nearest source caches; phase unit vectors are
+    // circularly interpolated so X cannot snap halfway between frames.
     std::vector<SerumFftCache> InterpolateCaches(const std::vector<SerumFftCache>& sources,
                                                  std::size_t output_count);
 

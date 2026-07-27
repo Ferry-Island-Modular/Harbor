@@ -14,7 +14,8 @@ class AxisMorphSelector;
 
 // The Serum mode screen. Uses a SerumWavService to run the Serum DSP
 // pipeline (SerumLoader → SerumMorpher → SerumGenerator). Provides the
-// mode-specific content (file drop widget, 4+4 axis selectors) via the
+// mode-specific content (file drop widget, complementary color/texture
+// selectors) via the
 // ModeScreenBase hooks; the base class handles the 5-state machine,
 // back button, progress bar, preview controls, and export.
 class SerumWavScreen : public ModeScreenBase {

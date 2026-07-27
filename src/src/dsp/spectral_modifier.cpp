@@ -11,6 +11,18 @@ namespace {
 
 constexpr float kTwoPi = 2.0f * std::numbers::pi_v<float>;
 
+// An eight-position bipolar axis has no single mathematical midpoint.
+// Give positions 3 and 4 an exact identity value instead of making every
+// generated row slightly processed. The small center plateau is useful on
+// hardware: users can reliably return to the source character.
+float BipolarAxisAmount(float normalized) {
+    const int position = std::clamp(static_cast<int>(std::lround(normalized * 7.0f)), 0, 7);
+    constexpr float kAmounts[8] = {
+        -1.0f, -2.0f / 3.0f, -1.0f / 3.0f, 0.0f, 0.0f, 1.0f / 3.0f, 2.0f / 3.0f, 1.0f,
+    };
+    return kAmounts[position];
+}
+
 // Compute the time-averaged spectral envelope: for each bin, the mean
 // magnitude across all frames.
 std::vector<float> SpectralEnvelope(const std::vector<std::vector<float>>& magnitude) {
@@ -37,7 +49,7 @@ void ApplyTilt(std::vector<std::vector<float>>& magnitude, float y_norm) {
         return;
     }
     const std::size_t num_frames = magnitude[0].size();
-    const float exponent_scale = ((y_norm * 2.0f) - 1.0f) * 5.0f;
+    const float exponent_scale = BipolarAxisAmount(y_norm) * 5.0f;
     const float inv_num_bins = 1.0f / static_cast<float>(num_bins);
     for (std::size_t k = 0; k < num_bins; ++k) {
         const float tilt = std::exp(exponent_scale * static_cast<float>(k) * inv_num_bins);
@@ -59,9 +71,8 @@ void ApplyFormant(std::vector<std::vector<float>>& magnitude, float y_norm) {
     }
     const std::size_t num_frames = magnitude[0].size();
 
-    // formant_shift in [0.5, 2.0]. y_norm=0 gives 0.5 (shift down one
-    // octave), y_norm=1 gives 2.0 (shift up one octave).
-    const float formant_shift = 0.5f + y_norm * 1.5f;
+    // Exact identity at positions 3 and 4; endpoints shift one octave.
+    const float formant_shift = std::exp2(BipolarAxisAmount(y_norm));
     const float inv_shift = 1.0f / formant_shift;
 
     std::vector<float> shifted(num_bins, 0.0f);
@@ -69,9 +80,9 @@ void ApplyFormant(std::vector<std::vector<float>>& magnitude, float y_norm) {
         std::fill(shifted.begin(), shifted.end(), 0.0f);
         for (std::size_t k = 0; k < num_bins; ++k) {
             const float src_idx = static_cast<float>(k) * inv_shift;
-            if (src_idx >= 0.0f && src_idx < static_cast<float>(num_bins) - 1.0f) {
+            if (src_idx >= 0.0f && src_idx <= static_cast<float>(num_bins) - 1.0f) {
                 const std::size_t idx_floor = static_cast<std::size_t>(std::floor(src_idx));
-                const std::size_t idx_ceil = idx_floor + 1;
+                const std::size_t idx_ceil = std::min(idx_floor + 1, num_bins - 1);
                 const float fraction = src_idx - static_cast<float>(idx_floor);
                 shifted[k] =
                     magnitude[idx_floor][f] * (1.0f - fraction) + magnitude[idx_ceil][f] * fraction;
@@ -93,7 +104,7 @@ void ApplyHarmonicStretch(std::vector<std::vector<float>>& magnitude, float y_no
     }
     const std::size_t num_frames = magnitude[0].size();
 
-    const float stretch_power = 0.5f + y_norm * 1.5f;
+    const float stretch_power = std::exp2(BipolarAxisAmount(y_norm));
     const float inv_num_bins_m1 = 1.0f / static_cast<float>(num_bins - 1);
 
     std::vector<float> stretched(num_bins, 0.0f);
@@ -104,9 +115,9 @@ void ApplyHarmonicStretch(std::vector<std::vector<float>>& magnitude, float y_no
             const float normalized = static_cast<float>(k) * inv_num_bins_m1;
             const float remapped_norm = std::pow(normalized, stretch_power);
             const float src_idx = remapped_norm * static_cast<float>(num_bins - 1);
-            if (src_idx < static_cast<float>(num_bins) - 1.0f) {
+            if (src_idx <= static_cast<float>(num_bins) - 1.0f) {
                 const std::size_t idx_floor = static_cast<std::size_t>(std::floor(src_idx));
-                const std::size_t idx_ceil = idx_floor + 1;
+                const std::size_t idx_ceil = std::min(idx_floor + 1, num_bins - 1);
                 const float fraction = src_idx - static_cast<float>(idx_floor);
                 stretched[k] =
                     magnitude[idx_floor][f] * (1.0f - fraction) + magnitude[idx_ceil][f] * fraction;

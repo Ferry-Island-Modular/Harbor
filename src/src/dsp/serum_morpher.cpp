@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <numbers>
 
 namespace fim::dsp {
@@ -45,6 +46,52 @@ SerumFftCache SerumMorpher::ComputeCache(const std::vector<float>& frame) {
     return cache;
 }
 
+void SerumMorpher::AlignSourcePhases(std::vector<SerumFftCache>& sources) const {
+    if (sources.size() < 2) {
+        return;
+    }
+    constexpr std::size_t kAlignmentBins = 32;
+    constexpr float kTwoPi = 2.0f * std::numbers::pi_v<float>;
+
+    for (std::size_t frame = 1; frame < sources.size(); ++frame) {
+        const auto& previous = sources[frame - 1];
+        auto& current = sources[frame];
+
+        std::vector<std::pair<float, std::size_t>> weighted_bins;
+        weighted_bins.reserve(kNumBins - 2);
+        for (std::size_t k = 1; k < kNumBins - 1; ++k) {
+            weighted_bins.emplace_back(previous.amplitudes[k] * current.amplitudes[k], k);
+        }
+        const std::size_t keep = std::min(kAlignmentBins, weighted_bins.size());
+        std::partial_sort(weighted_bins.begin(), weighted_bins.begin() + keep, weighted_bins.end(),
+                          [](const auto& lhs, const auto& rhs) { return lhs.first > rhs.first; });
+
+        float best_score = -std::numeric_limits<float>::infinity();
+        std::size_t best_shift = 0;
+        for (std::size_t shift = 0; shift < kFftSize; ++shift) {
+            float score = 0.0f;
+            for (std::size_t candidate = 0; candidate < keep; ++candidate) {
+                const auto [weight, k] = weighted_bins[candidate];
+                const float rotation =
+                    kTwoPi * static_cast<float>(k * shift) / static_cast<float>(kFftSize);
+                score += weight * std::cos(current.phases[k] - rotation - previous.phases[k]);
+            }
+            if (score > best_score) {
+                best_score = score;
+                best_shift = shift;
+            }
+        }
+
+        for (std::size_t k = 1; k < kNumBins; ++k) {
+            const float rotation =
+                kTwoPi * static_cast<float>(k * best_shift) / static_cast<float>(kFftSize);
+            current.phases[k] = std::remainder(current.phases[k] - rotation, kTwoPi);
+            current.normalized_real[k] = std::cos(current.phases[k]);
+            current.normalized_imag[k] = std::sin(current.phases[k]);
+        }
+    }
+}
+
 std::vector<SerumFftCache> SerumMorpher::InterpolateCaches(
     const std::vector<SerumFftCache>& sources, std::size_t output_count) {
     std::vector<SerumFftCache> result(output_count);
@@ -68,7 +115,6 @@ std::vector<SerumFftCache> SerumMorpher::InterpolateCaches(
         const std::size_t src_floor = static_cast<std::size_t>(std::floor(src_pos));
         const std::size_t src_ceil = std::min(src_floor + 1, sources.size() - 1);
         const float t = src_pos - static_cast<float>(src_floor);
-        const std::size_t nearest = (t < 0.5f) ? src_floor : src_ceil;
 
         result[out_idx].amplitudes.resize(kNumBins);
         result[out_idx].phases.resize(kNumBins);
@@ -80,11 +126,22 @@ std::vector<SerumFftCache> SerumMorpher::InterpolateCaches(
             // source caches.
             result[out_idx].amplitudes[k] =
                 sources[src_floor].amplitudes[k] * (1.0f - t) + sources[src_ceil].amplitudes[k] * t;
-            // Phases: take from the nearest source cache to avoid
-            // phase unwrapping complications.
-            result[out_idx].phases[k] = sources[nearest].phases[k];
-            result[out_idx].normalized_real[k] = sources[nearest].normalized_real[k];
-            result[out_idx].normalized_imag[k] = sources[nearest].normalized_imag[k];
+            const float real = sources[src_floor].normalized_real[k] * (1.0f - t) +
+                               sources[src_ceil].normalized_real[k] * t;
+            const float imag = sources[src_floor].normalized_imag[k] * (1.0f - t) +
+                               sources[src_ceil].normalized_imag[k] * t;
+            const float norm = std::hypot(real, imag);
+            if (norm > 1e-6f) {
+                result[out_idx].normalized_real[k] = real / norm;
+                result[out_idx].normalized_imag[k] = imag / norm;
+            } else {
+                // Exactly opposite phasors have no unique midpoint. Retain
+                // the lower frame's phase rather than creating NaNs.
+                result[out_idx].normalized_real[k] = sources[src_floor].normalized_real[k];
+                result[out_idx].normalized_imag[k] = sources[src_floor].normalized_imag[k];
+            }
+            result[out_idx].phases[k] =
+                std::atan2(result[out_idx].normalized_imag[k], result[out_idx].normalized_real[k]);
         }
     }
 
@@ -251,6 +308,29 @@ std::vector<std::complex<float>> ApplyHarmonicStretch(const SerumFftCache& cache
     return result;
 }
 
+std::vector<std::complex<float>> ApplyOddEven(const SerumFftCache& cache, float amount) {
+    std::vector<std::complex<float>> result(kNumBins);
+    for (std::size_t k = 0; k < kNumBins; ++k) {
+        float amplitude = cache.amplitudes[k];
+        if (k > 0 && k < kNumBins - 1) {
+            const float polarity = (k % 2 == 0) ? -1.0f : 1.0f;
+            amplitude *= std::exp(polarity * amount * 1.25f);
+        }
+        result[k] = std::complex<float>(amplitude * cache.normalized_real[k],
+                                        amplitude * cache.normalized_imag[k]);
+    }
+    return result;
+}
+
+std::vector<std::complex<float>> IdentitySpectrum(const SerumFftCache& cache) {
+    std::vector<std::complex<float>> result(kNumBins);
+    for (std::size_t k = 0; k < kNumBins; ++k) {
+        result[k] = std::complex<float>(cache.amplitudes[k] * cache.normalized_real[k],
+                                        cache.amplitudes[k] * cache.normalized_imag[k]);
+    }
+    return result;
+}
+
 }  // namespace
 
 std::vector<std::complex<float>> SerumMorpher::Apply(const SerumFftCache& cache, SerumMode mode,
@@ -264,6 +344,10 @@ std::vector<std::complex<float>> SerumMorpher::Apply(const SerumFftCache& cache,
             return ApplySmear(cache, amount);
         case SerumMode::kStretch:
             return ApplyHarmonicStretch(cache, amount);
+        case SerumMode::kOddEven:
+            return ApplyOddEven(cache, amount);
+        case SerumMode::kCrush:
+            return IdentitySpectrum(cache);
     }
     // Unreachable but required by some compilers to avoid a warning.
     return std::vector<std::complex<float>>(kNumBins, std::complex<float>(0.0f, 0.0f));
