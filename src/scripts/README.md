@@ -81,6 +81,37 @@ that means the `.dmg` runs on M1+ Macs only — Intel testers would need
 a separate build (or a universal binary, which requires building twice
 and `lipo`-merging the executables and Qt frameworks).
 
+## Windows beta packages
+
+`package-windows.ps1` builds a self-contained Qt deployment folder and emits:
+
+- a per-user NSIS installer with upgrade/uninstall support; and
+- a portable ZIP for testers who prefer not to install.
+
+The installer does not require administrator access for Harbor itself. It
+bundles Microsoft's official Visual C++ Redistributable, which may request
+elevation if the runtime needs to be installed.
+
+Run from a Windows PowerShell session with Qt, Visual Studio, and NSIS on
+`PATH`:
+
+```powershell
+.\src\scripts\package-windows.ps1
+
+# Package an existing Release build.
+.\src\scripts\package-windows.ps1 -SkipBuild -BuildDir src\build
+
+# Produce only the portable ZIP when NSIS is unavailable.
+.\src\scripts\package-windows.ps1 -SkipBuild -SkipInstaller
+```
+
+Outputs are written to `<build-dir>\dist`. CI publishes both files in the
+`fim-config-tool-windows` artifact.
+
+These beta packages are unsigned. SmartScreen may require the tester to click
+**More info → Run anyway**, after confirming that the file came directly from
+Ferry Island Modular. Self-signing would not remove that warning.
+
 ## Windows signing without an annual certificate
 
 The preferred low-cost path is an MSIX published through the Microsoft Store.

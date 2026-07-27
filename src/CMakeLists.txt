@@ -308,6 +308,23 @@ if(NOT APPLE AND NOT WIN32)
     set_target_properties(fim-config-tool PROPERTIES OUTPUT_NAME "harbor")
 endif()
 
+if(WIN32)
+    set(HARBOR_ICON_WINDOWS
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/Harbor.ico")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/Harbor.rc.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/Harbor.rc"
+        @ONLY
+    )
+    target_sources(fim-config-tool PRIVATE
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/Harbor.rc"
+    )
+    set_target_properties(fim-config-tool PROPERTIES
+        QT_WINDOWS_APP_PROJECT_IDENTIFIER "com.ferryislandmodular.harbor"
+        QT_WINDOWS_APP_PROJECT_EXECUTION_LEVEL "asInvoker"
+    )
+endif()
+
 # Deployment finalization (on macOS this builds a .app bundle)
 if(APPLE)
     # Bundle the app icon. The .icns file is generated from

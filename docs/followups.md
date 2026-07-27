@@ -39,11 +39,10 @@ Things noticed during implementation that aren't blocking but should be revisite
   The remaining external setup is Apple Developer Program enrollment, a
   Developer ID Application certificate, and a `notarytool` Keychain profile.
 - **Universal macOS binary.** Current `package-macos.sh` builds host-arch only (arm64 on dev machines). For Intel coverage we'd need to build twice with `-DCMAKE_OSX_ARCHITECTURES=arm64` and `=x86_64`, then `lipo -create` the executables and every dylib in `Contents/Frameworks/`. Skipped for now since all current testers are M1+.
-- **Windows Store packaging.** CI currently emits a `windeployqt` ZIP. Add an
-  MSIX package for Microsoft Store distribution, which provides free signing
-  and avoids SmartScreen download warnings. Direct downloads can optionally
-  use Microsoft Artifact Signing; buying EV solely for SmartScreen is no
-  longer justified.
+- **Windows public-release signing.** CI now emits an unsigned NSIS installer
+  and portable ZIP for beta testers. For public distribution, add an MSIX
+  package for Microsoft Store signing or use Microsoft Artifact Signing for
+  direct downloads. Buying EV solely for SmartScreen is no longer justified.
 - **Linux packaging.** No script yet. AppImage is the path of least resistance for "drop in Slack and run anywhere"; alternatively a Flatpak for proper distro integration.
 
 ## Build / CI

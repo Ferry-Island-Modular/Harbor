@@ -161,19 +161,25 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      # Windows: windeployqt copies the Qt DLLs and plugin dirs next to the .exe.
-      # Upload the whole Release/ folder so the user just unzips and double-clicks.
-      - name: Bundle Qt DLLs (Windows)
+      # Windows: create an NSIS per-user installer plus a portable ZIP.
+      - name: Install NSIS (Windows)
         if: runner.os == 'Windows'
-        working-directory: src/build/Release
-        run: windeployqt --release Harbor.exe
+        shell: pwsh
+        run: choco install nsis --version=3.12.0 --yes --no-progress
 
-      - name: Upload bundled exe (Windows)
+      - name: Package Windows installer and portable ZIP
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./src/scripts/package-windows.ps1 -SkipBuild -BuildDir src/build
+
+      - name: Upload Windows packages
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: fim-config-tool-windows
-          path: src/build/Release/
+          path: |
+            src/build/dist/Harbor-*-windows-x64-setup.exe
+            src/build/dist/Harbor-*-windows-x64-portable.zip
           if-no-files-found: error
           retention-days: 14
 
