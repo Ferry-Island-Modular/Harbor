@@ -10,10 +10,10 @@ INSTALLING
 
 1. Drag Harbor to the Applications folder.
 
-2. Right-click Harbor in Applications, choose Open, then click Open in
-   the warning dialog. macOS remembers this and will not ask again.
+2. Launch Harbor from Applications.
 
-3. Launch Harbor from Applications normally after that.
+Internal beta builds that have not been notarized may require you to
+right-click Harbor, choose Open, and confirm the first launch.
 
 
 REPORTING BUGS

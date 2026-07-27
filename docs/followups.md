@@ -17,7 +17,9 @@ Things noticed during implementation that aren't blocking but should be revisite
 
 - **Help dialog content needs review.** `cpp/resources/help/help.html` was written from a developer's mental model. After the first round of beta testers, rewrite based on the questions they actually ask. May want to add screenshots once styling is finalized.
 - **AboutDialog version string is hardcoded to "(beta)".** Once we cut a non-beta release, drop the suffix and pull the channel from a CMake option (e.g. `-DHARBOR_RELEASE_CHANNEL=stable`).
-- **`package-macos.sh` contaminates the dev .app bundle.** Running `macdeployqt` populates `Harbor.app/Contents/Frameworks/` and `Contents/PlugIns/`, which causes a duplicate-Qt crash on the next dev-build launch. Fix: make the script work in a separate staging copy of the .app instead of modifying the in-place dev build. Workaround: `rm -rf cpp/build/Harbor.app && cmake --build cpp/build`.
+- ~~**`package-macos.sh` contaminates the dev .app bundle.**~~ Fixed: the
+  packaging script now runs `macdeployqt` against a temporary staging copy and
+  leaves the development bundle untouched.
 - **GitHub URL in About dialog and help.html will change.** Currently hardcoded to `github.com/jgoney/fim-config-tool`. Update when the repo is renamed or moved to an org.
 
 ## Preview widget
@@ -32,9 +34,16 @@ Things noticed during implementation that aren't blocking but should be revisite
 
 ## Distribution
 
-- **macOS notarized release.** `cpp/scripts/package-macos.sh` produces an ad-hoc-signed `.dmg` suitable for internal team testing, but recipients have to clear the quarantine attribute manually. For a public release we need: (1) Apple Developer Program membership, (2) a "Developer ID Application" certificate, (3) `codesign` with hardened runtime, (4) `notarytool submit --wait`, (5) `xcrun stapler staple`. Wire this into the script behind a `--notarize` flag once we have the cert.
+- **macOS release credentials.** The packaging script now supports Developer ID
+  signing, hardened runtime, notarization, and stapling behind `--notarize`.
+  The remaining external setup is Apple Developer Program enrollment, a
+  Developer ID Application certificate, and a `notarytool` Keychain profile.
 - **Universal macOS binary.** Current `package-macos.sh` builds host-arch only (arm64 on dev machines). For Intel coverage we'd need to build twice with `-DCMAKE_OSX_ARCHITECTURES=arm64` and `=x86_64`, then `lipo -create` the executables and every dylib in `Contents/Frameworks/`. Skipped for now since all current testers are M1+.
-- **Windows packaging.** No script yet. Will need `windeployqt` plus an installer (Inno Setup or WiX) and ideally an EV code-signing cert (otherwise SmartScreen will warn).
+- **Windows Store packaging.** CI currently emits a `windeployqt` ZIP. Add an
+  MSIX package for Microsoft Store distribution, which provides free signing
+  and avoids SmartScreen download warnings. Direct downloads can optionally
+  use Microsoft Artifact Signing; buying EV solely for SmartScreen is no
+  longer justified.
 - **Linux packaging.** No script yet. AppImage is the path of least resistance for "drop in Slack and run anywhere"; alternatively a Flatpak for proper distro integration.
 
 ## Build / CI
