@@ -102,3 +102,20 @@ uv run python /path/to/fim-config-tool/src/scripts/analyze-wavetable-evaluations
     --variant candidate=/path/to/candidate/banks \
     --output /path/to/variant-analysis.json
 ```
+
+Pitch-dependent aliasing can be measured against the Four Seas firmware's
+48 kHz, linearly interpolated oscillator model:
+
+```bash
+uv run python /path/to/fim-config-tool/src/scripts/analyze_wavetable_aliasing.py \
+    --analysis-root "$PWD" \
+    --variant legacy=/path/to/baseline/banks \
+    --variant candidate=/path/to/candidate/banks \
+    --output /path/to/alias-analysis.json \
+    --preview-output /path/to/alias-previews
+```
+
+The report expresses interpolation-weighted harmonic power above Nyquist
+relative to valid harmonic power in dB. Preview groups contain candidate raw,
+pitch-bandlimited reference, matching legacy raw, and a normalized isolated
+alias signal.
