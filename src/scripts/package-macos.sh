@@ -162,7 +162,15 @@ if [[ -f "$INFO_PLIST" ]]; then
 fi
 
 echo "Running macdeployqt..."
-"$MACDEPLOYQT" "$APP_PATH" -verbose=1 -no-codesign -no-plugins
+MACDEPLOYQT_ARGS=(-verbose=1 -no-plugins)
+MACDEPLOYQT_HELP="$("$MACDEPLOYQT" -help 2>&1 || true)"
+if [[ "$MACDEPLOYQT_HELP" == *"-no-codesign"* ]]; then
+    MACDEPLOYQT_ARGS+=(-no-codesign)
+else
+    echo "macdeployqt does not support -no-codesign; its temporary ad-hoc" \
+         "signature will be replaced after plug-in pruning."
+fi
+"$MACDEPLOYQT" "$APP_PATH" "${MACDEPLOYQT_ARGS[@]}"
 
 # macdeployqt otherwise copies every globally installed Qt image/input plug-in,
 # pulling optional QtPdf, QtSvg, and Virtual Keyboard dependencies into a
