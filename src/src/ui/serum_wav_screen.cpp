@@ -8,6 +8,7 @@
 #include <QStandardPaths>
 #include <QStringList>
 #include <QVBoxLayout>
+#include <algorithm>
 
 #include "app/services/serum_wav_service.h"
 #include "app/settings.h"
@@ -30,18 +31,32 @@ QString SerumOutputDir() {
 // Map an AxisMorphSelector button index (0..3) to the corresponding
 // SerumMode enum value. The label order in the QStringList below must
 // match this mapping.
-fim::dsp::SerumMode SerumModeFromIndex(int index) {
+fim::dsp::SerumMode SerumYModeFromIndex(int index) {
     switch (index) {
         case 1:
-            return fim::dsp::SerumMode::kPhase;
-        case 2:
             return fim::dsp::SerumMode::kSmear;
-        case 3:
+        case 2:
             return fim::dsp::SerumMode::kStretch;
         case 0:
         default:
             return fim::dsp::SerumMode::kFormant;
     }
+}
+
+fim::dsp::SerumMode SerumZModeFromIndex(int index) {
+    switch (index) {
+        case 0:
+            return fim::dsp::SerumMode::kOddEven;
+        case 2:
+            return fim::dsp::SerumMode::kCrush;
+        case 1:
+        default:
+            return fim::dsp::SerumMode::kPhase;
+    }
+}
+
+int ValidModeIndex(int index) {
+    return std::clamp(index, 0, 2);
 }
 
 }  // namespace
@@ -59,8 +74,8 @@ SerumWavScreen::SerumWavScreen(fim::engine::RealtimeAudioEngine* engine,
         QDir(QString::fromStdString(settings->OutputDir())).filePath("serum_wav");
     service_->SetOutputDirectory(user_dir);
     service_->SetSamplesPerFrame(settings->SamplesPerFrame());
-    service_->SetYMode(SerumModeFromIndex(settings->SerumYMorph()));
-    service_->SetZMode(SerumModeFromIndex(settings->SerumZMorph()));
+    service_->SetYMode(SerumYModeFromIndex(ValidModeIndex(settings->SerumYMorph())));
+    service_->SetZMode(SerumZModeFromIndex(ValidModeIndex(settings->SerumZMorph())));
 
     FinishInit();
 }
@@ -104,18 +119,17 @@ QWidget* SerumWavScreen::BuildFileSetPageContent(QWidget* parent) {
     x_descriptor->setObjectName("anyWavAxisDescriptor");
     layout->addWidget(x_descriptor);
 
-    // Y and Z axis selectors share the same 4-option list. Order must
-    // match SerumModeFromIndex() above.
-    const QStringList mode_options{"Formant", "Phase", "Smear", "Stretch"};
+    const QStringList y_options{"Formant", "Smear", "Stretch"};
+    const QStringList z_options{"Odd / even", "Phase motion", "Crush"};
 
-    y_selector_ = new AxisMorphSelector("Y axis", mode_options, content);
-    y_selector_->SetCurrentIndex(settings()->SerumYMorph());
+    y_selector_ = new AxisMorphSelector("Y axis — spectral color", y_options, content);
+    y_selector_->SetCurrentIndex(ValidModeIndex(settings()->SerumYMorph()));
     layout->addWidget(y_selector_);
     connect(y_selector_, &AxisMorphSelector::currentIndexChanged, this,
             &SerumWavScreen::OnYModeChanged);
 
-    z_selector_ = new AxisMorphSelector("Z axis", mode_options, content);
-    z_selector_->SetCurrentIndex(settings()->SerumZMorph());
+    z_selector_ = new AxisMorphSelector("Z axis — texture", z_options, content);
+    z_selector_->SetCurrentIndex(ValidModeIndex(settings()->SerumZMorph()));
     layout->addWidget(z_selector_);
     connect(z_selector_, &AxisMorphSelector::currentIndexChanged, this,
             &SerumWavScreen::OnZModeChanged);
@@ -143,10 +157,10 @@ void SerumWavScreen::OnClearHook() {
 
 void SerumWavScreen::OnResetHook() {
     if (y_selector_ != nullptr) {
-        y_selector_->SetCurrentIndex(settings()->SerumYMorph());
+        y_selector_->SetCurrentIndex(ValidModeIndex(settings()->SerumYMorph()));
     }
     if (z_selector_ != nullptr) {
-        z_selector_->SetCurrentIndex(settings()->SerumZMorph());
+        z_selector_->SetCurrentIndex(ValidModeIndex(settings()->SerumZMorph()));
     }
 }
 
@@ -155,12 +169,12 @@ QString SerumWavScreen::OutputDirForPreview() const {
 }
 
 void SerumWavScreen::OnYModeChanged(int index) {
-    service_->SetYMode(SerumModeFromIndex(index));
+    service_->SetYMode(SerumYModeFromIndex(index));
     settings()->SetSerumYMorph(index);
 }
 
 void SerumWavScreen::OnZModeChanged(int index) {
-    service_->SetZMode(SerumModeFromIndex(index));
+    service_->SetZMode(SerumZModeFromIndex(index));
     settings()->SetSerumZMorph(index);
 }
 

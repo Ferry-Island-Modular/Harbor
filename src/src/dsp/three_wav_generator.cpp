@@ -7,11 +7,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <numbers>
+#include <optional>
 #include <random>
 #include <stdexcept>
 #include <vector>
 
 #include "dr_wav.h"
+#include "dsp/post_effects.h"
 #include "dsp/real_fft.h"
 #include "dsp/resample.h"
 #include "dsp/stft.h"
@@ -27,7 +29,6 @@ constexpr std::size_t kNumBins = kFftSize / 2 + 1;  // 1025
 constexpr std::size_t kCellsPerSide = 8;
 constexpr std::size_t kCellsPerPage = kCellsPerSide * kCellsPerSide;  // 64
 constexpr std::uint32_t kOutputSampleRate = 44100;
-constexpr float kWeightEpsilon = 0.1f;
 
 // Time-average the magnitude spectrum across all STFT frames. Each bin's
 // output is the mean of that bin's magnitude across all time frames.
@@ -50,22 +51,44 @@ std::vector<float> TimeAverageMagnitude(
     return avg;
 }
 
-// Random-phase inverse FFT of a magnitude spectrum. Each non-DC, non-
-// Nyquist bin gets a uniform random phase in [0, 2*pi); DC and Nyquist
-// stay real (their imaginary parts must be zero for the inverse to
-// produce a real signal). Seeded deterministically per cell so output
-// is reproducible across runs. This diffuses the energy across the
-// cycle (instead of clumping at t=0 like zero-phase) and produces a
-// much less buzzy, more organic sound.
-std::vector<float> RandomPhaseIfft(const std::vector<float>& magnitude, RealFft& fft,
-                                   std::uint32_t seed) {
+std::vector<float> CoherentPhaseTarget(std::uint32_t seed) {
     std::mt19937 rng(seed);
     std::uniform_real_distribution<float> phase_dist(0.0f, 2.0f * std::numbers::pi_v<float>);
+    std::vector<float> phases(kNumBins, 0.0f);
+    for (std::size_t k = 1; k < kNumBins - 1; ++k) {
+        phases[k] = phase_dist(rng);
+    }
+    return phases;
+}
 
+std::vector<float> TextureIfft(std::vector<float> magnitude, const std::vector<float>& phases,
+                               ThreeWavZMode mode, float amount, RealFft& fft) {
+    // Ease into the texture, then make the upper half of Z substantially more
+    // assertive. This preserves useful interpolation near the neutral page
+    // without wasting the far end of the hardware control on subtle changes.
+    const float strength = amount * amount * (3.0f - 2.0f * amount);
     std::vector<std::complex<float>> bins(kNumBins);
     bins[0] = std::complex<float>(magnitude[0], 0.0f);  // DC stays real
     for (std::size_t k = 1; k < kNumBins - 1; ++k) {
-        const float phase = phase_dist(rng);
+        if (mode == ThreeWavZMode::kOddEven) {
+            // At the endpoint, strongly hollow out the even harmonics rather
+            // than applying a symmetric tilt that per-cell normalization can
+            // partly disguise.
+            const float target_gain = (k % 2 == 0) ? 0.04f : 1.5f;
+            magnitude[k] *= std::lerp(1.0f, target_gain, strength);
+        } else if (mode == ThreeWavZMode::kHarmonicComb) {
+            // Keep the fundamental and every fourth harmonic thereafter.
+            // The rejected partials are not hard-zeroed, so neighboring Z
+            // pages remain smooth and the input's spectral flavor survives.
+            const bool retained = ((k - 1) % 4) == 0;
+            const float target_gain = retained ? 1.75f : 0.025f;
+            magnitude[k] *= std::lerp(1.0f, target_gain, strength);
+        }
+        float phase = phases[k];
+        if (mode == ThreeWavZMode::kPhase) {
+            const float normalized = static_cast<float>(k) / static_cast<float>(kNumBins - 1);
+            phase += amount * 8.0f * std::numbers::pi_v<float> * normalized * normalized;
+        }
         bins[k] = std::polar(magnitude[k], phase);
     }
     bins[kNumBins - 1] = std::complex<float>(magnitude[kNumBins - 1], 0.0f);  // Nyquist real
@@ -82,6 +105,19 @@ std::vector<float> RandomPhaseIfft(const std::vector<float>& magnitude, RealFft&
 
 }  // namespace
 
+ThreeWavWeights ThreeWavBarycentricWeights(float x_amount, float y_amount) {
+    const float x = std::clamp(x_amount, 0.0f, 1.0f);
+    // Retain one eighth of the A/B crossfade at maximum Y. A mathematically
+    // pure C vertex would collapse the entire top grid row to eight identical
+    // waves, wasting X resolution on the hardware.
+    const float y = std::clamp(y_amount, 0.0f, 1.0f) * 0.875f;
+    return {
+        .a = (1.0f - y) * (1.0f - x),
+        .b = (1.0f - y) * x,
+        .c = y,
+    };
+}
+
 ThreeWavGenerator::ThreeWavGenerator(std::size_t samples, std::size_t num_pages)
     : samples_(samples), num_pages_(num_pages) {
     if (samples != 2048 || num_pages != 8) {
@@ -92,6 +128,13 @@ ThreeWavGenerator::ThreeWavGenerator(std::size_t samples, std::size_t num_pages)
 
 bool ThreeWavGenerator::Generate(const std::array<std::filesystem::path, 3>& input_paths,
                                  const std::filesystem::path& output_directory,
+                                 const ProgressCallback& on_progress) const {
+    return Generate(input_paths, output_directory, ThreeWavGenerateOptions{}, on_progress);
+}
+
+bool ThreeWavGenerator::Generate(const std::array<std::filesystem::path, 3>& input_paths,
+                                 const std::filesystem::path& output_directory,
+                                 const ThreeWavGenerateOptions& options,
                                  const ProgressCallback& on_progress) const {
     // Step 1: load and resample each of the 3 files to 44.1 kHz.
     // Normalizing at load means differing file levels don't cause one
@@ -136,33 +179,38 @@ bool ThreeWavGenerator::Generate(const std::array<std::filesystem::path, 3>& inp
 
     // Step 4: prepare the iFFT instance (reused across all cells).
     RealFft ifft(kFftSize);
+    const std::uint32_t phase_seed =
+        options.random_seed.value_or(static_cast<std::uint32_t>(std::random_device{}()));
+    const auto coherent_phases = CoherentPhaseTarget(phase_seed);
 
-    // Step 5: generate 8 pages. Each cell is a weighted sum of the 3
-    // per-file magnitude spectra, weights = axis positions + epsilon.
+    // Step 5: X crossfades A->B, Y pulls toward C, and Z independently
+    // applies the chosen texture. A single phase target is shared by the
+    // entire cube so neighboring cells remain interpolation-compatible.
     for (std::size_t z = 0; z < num_pages_; ++z) {
         std::vector<float> page_samples;
         page_samples.reserve(samples_ * kCellsPerPage);
 
-        const float z_weight = static_cast<float>(z) / 7.0f + kWeightEpsilon;
+        const float z_amount = static_cast<float>(z) / 7.0f;
 
         for (std::size_t y = 0; y < kCellsPerSide; ++y) {
-            const float y_weight = static_cast<float>(y) / 7.0f + kWeightEpsilon;
             for (std::size_t x = 0; x < kCellsPerSide; ++x) {
-                const float x_weight = static_cast<float>(x) / 7.0f + kWeightEpsilon;
+                const auto weights = ThreeWavBarycentricWeights(static_cast<float>(x) / 7.0f,
+                                                                static_cast<float>(y) / 7.0f);
 
                 // Weighted sum of the 3 per-file magnitude spectra.
                 std::vector<float> combined_mag(kNumBins, 0.0f);
                 for (std::size_t k = 0; k < kNumBins; ++k) {
-                    combined_mag[k] = x_weight * file_avg_magnitudes[0][k] +
-                                      y_weight * file_avg_magnitudes[1][k] +
-                                      z_weight * file_avg_magnitudes[2][k];
+                    combined_mag[k] = weights.a * file_avg_magnitudes[0][k] +
+                                      weights.b * file_avg_magnitudes[1][k] +
+                                      weights.c * file_avg_magnitudes[2][k];
                 }
 
-                // Random-phase iFFT -> time-domain cell. Seed is the
-                // linear cell index so output is deterministic.
-                const std::uint32_t cell_seed =
-                    static_cast<std::uint32_t>((z * kCellsPerSide + y) * kCellsPerSide + x);
-                auto cell = RandomPhaseIfft(combined_mag, ifft, cell_seed);
+                auto cell =
+                    TextureIfft(combined_mag, coherent_phases, options.z_mode, z_amount, ifft);
+                if (options.z_mode == ThreeWavZMode::kCrush) {
+                    const auto crush = ZCrushAmount(static_cast<int>(z));
+                    ZCrush(cell, crush.bit_depth, crush.sample_hold);
+                }
 
                 // Remove DC.
                 float dc_sum = 0.0f;

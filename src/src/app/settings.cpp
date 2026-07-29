@@ -17,6 +17,7 @@ constexpr const char* kKeyZMorph = "z_morph";
 constexpr const char* kKeyAnyWavSourceMode = "any_wav_source_mode";
 constexpr const char* kKeySerumYMorph = "serum_y_morph";
 constexpr const char* kKeySerumZMorph = "serum_z_morph";
+constexpr const char* kKeyThreeWavZMorph = "three_wav_z_morph";
 
 }  // namespace
 
@@ -101,6 +102,14 @@ int Settings::SerumZMorph() const {
 
 void Settings::SetSerumZMorph(int index) {
     backing_.setValue(kKeySerumZMorph, index);
+}
+
+int Settings::ThreeWavZMorph() const {
+    return backing_.value(kKeyThreeWavZMorph, 0).toInt();
+}
+
+void Settings::SetThreeWavZMorph(int index) {
+    backing_.setValue(kKeyThreeWavZMorph, index);
 }
 
 }  // namespace fim::app

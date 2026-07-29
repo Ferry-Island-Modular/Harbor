@@ -45,7 +45,8 @@ enum class ZMode {
 //
 // Parameter semantics:
 // - x in [0, 7]: spectral envelope stretch (0.5x..2.0x) when enabled.
-// - y in [0, 7]: strength of the Y morph mode. y=3 or 4 is roughly neutral.
+// - y in [0, 7]: strength of the Y morph mode. For bipolar modes, y=3 and
+//   y=4 are exactly neutral; smear remains a unipolar 0..maximum effect.
 // - z in [0, 7]: strength of the Z morph mode. z=0 leaves phase untouched.
 // - y_mode: which Y transformation to apply.
 // - z_mode: which Z transformation to apply. kCrush is a no-op here;

@@ -59,6 +59,10 @@ public:
     int SerumZMorph() const;
     void SetSerumZMorph(int index);
 
+    // ---- three_wav_z_morph ----
+    int ThreeWavZMorph() const;
+    void SetThreeWavZMorph(int index);
+
 private:
     QSettings backing_;
 };

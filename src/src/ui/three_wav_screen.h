@@ -15,13 +15,12 @@ class ThreeWavService;
 namespace fim::ui {
 
 class FileDropWidget;
+class AxisMorphSelector;
 
-// The three-wav mode screen. Takes 3 audio files (one per slot, mapped
-// to X / Y / Z axes) and blends their time-averaged magnitude spectra
-// via ThreeWavGenerator's axis-weighted cross-synthesis algorithm.
+// The three-wav mode screen. X crossfades files A/B, Y pulls toward C,
+// and Z applies a selectable texture.
 //
 // Differs from AnyWavScreen / SerumWavScreen in several ways:
-//   - No morph mode selectors (three-wav has no morph modes)
 //   - 3 file drop slots instead of 1
 //   - ShowDefaultFilenameRow() returns false (per-slot filenames inside
 //     the content instead of the base's single-file row)
@@ -54,12 +53,14 @@ private:
     void OnSlotFileDropped(int slot_index, const QString& path);
     void OnSlotClearClicked(int slot_index);
     void RefreshGenerateEnabled();
+    void OnZModeChanged(int index);
 
     fim::app::ThreeWavService* service_ = nullptr;
 
     std::array<FileDropWidget*, 3> drop_widgets_{nullptr, nullptr, nullptr};
     std::array<QLabel*, 3> filename_labels_{nullptr, nullptr, nullptr};
     QPushButton* generate_button_ = nullptr;
+    AxisMorphSelector* z_selector_ = nullptr;
 };
 
 }  // namespace fim::ui

@@ -25,21 +25,21 @@ SyntheticSpectrum MakeFlat(std::size_t num_bins, std::size_t num_frames, float m
 
 }  // namespace
 
-TEST_CASE("SpectralModifier tilt at y=3 leaves magnitudes nearly unchanged",
-          "[dsp][spectral_modifier]") {
-    // y_norm = 3/7, tilt exponent = (2*3/7 - 1) * freq_idx/num_bins * 5
-    //        = (-1/7) * freq_idx/num_bins * 5
-    // Not exactly zero — it dims the high bins slightly. We allow a generous
-    // tolerance (factor of e^(-5/7) ~= 0.49 at the top bin).
-    auto spectrum = MakeFlat(/*num_bins=*/8, /*num_frames=*/4);
-    fim::dsp::SpectralModifier modifier(/*seed=*/42);
-    // Use x=4 (stretch_amount = 0.5 + 4/7 * 1.5 ~= 1.357 — nontrivial but
-    // shouldn't blow up bin 0). z=0 disables phase modification entirely.
-    modifier.Apply(spectrum.magnitude, spectrum.phase, /*x=*/4, /*y=*/3, /*z=*/0);
-
-    // Bin 0 (DC) should be approximately preserved by tilt.
-    for (std::size_t f = 0; f < 4; ++f) {
-        REQUIRE_THAT(spectrum.magnitude[0][f], WithinAbs(1.0f, 0.5f));
+TEST_CASE("SpectralModifier bipolar modes have exact neutral rows", "[dsp][spectral_modifier]") {
+    for (const auto mode :
+         {fim::dsp::YMode::kTilt, fim::dsp::YMode::kFormant, fim::dsp::YMode::kStretch}) {
+        for (const int neutral_y : {3, 4}) {
+            auto spectrum = MakeFlat(/*num_bins=*/16, /*num_frames=*/2);
+            const auto before = spectrum.magnitude;
+            fim::dsp::SpectralModifier modifier(/*seed=*/42);
+            modifier.Apply(spectrum.magnitude, spectrum.phase, /*x=*/4, neutral_y, /*z=*/0, mode,
+                           fim::dsp::ZMode::kRandom, /*apply_x_spectral_stretch=*/false);
+            for (std::size_t k = 0; k < spectrum.magnitude.size(); ++k) {
+                for (std::size_t f = 0; f < spectrum.magnitude[k].size(); ++f) {
+                    REQUIRE_THAT(spectrum.magnitude[k][f], WithinAbs(before[k][f], 1e-6f));
+                }
+            }
+        }
     }
 }
 

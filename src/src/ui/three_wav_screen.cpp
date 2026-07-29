@@ -9,9 +9,12 @@
 #include <QStandardPaths>
 #include <QStringList>
 #include <QVBoxLayout>
+#include <algorithm>
 
 #include "app/services/three_wav_service.h"
 #include "app/settings.h"
+#include "dsp/three_wav_generator.h"
+#include "ui/widgets/axis_morph_selector.h"
 #include "ui/widgets/file_drop_widget.h"
 
 namespace fim::ui {
@@ -21,6 +24,24 @@ namespace {
 QString ThreeWavOutputDir() {
     const QString base = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     return QDir(base).filePath("three_wav_resynth");
+}
+
+fim::dsp::ThreeWavZMode ZModeFromIndex(int index) {
+    switch (index) {
+        case 1:
+            return fim::dsp::ThreeWavZMode::kOddEven;
+        case 2:
+            return fim::dsp::ThreeWavZMode::kCrush;
+        case 3:
+            return fim::dsp::ThreeWavZMode::kHarmonicComb;
+        case 0:
+        default:
+            return fim::dsp::ThreeWavZMode::kPhase;
+    }
+}
+
+int ValidZModeIndex(int index) {
+    return std::clamp(index, 0, 3);
 }
 
 }  // namespace
@@ -36,6 +57,7 @@ ThreeWavScreen::ThreeWavScreen(fim::engine::RealtimeAudioEngine* engine,
         QDir(QString::fromStdString(settings->OutputDir())).filePath("three_wav");
     service_->SetOutputDirectory(user_dir);
     service_->SetSamplesPerFrame(settings->SamplesPerFrame());
+    service_->SetZMode(ZModeFromIndex(ValidZModeIndex(settings->ThreeWavZMorph())));
 
     FinishInit();
 
@@ -85,7 +107,8 @@ QWidget* ThreeWavScreen::BuildFileSetPageContent(QWidget* parent) {
     auto* columns_row = new QHBoxLayout();
     columns_row->setSpacing(16);
 
-    static const QStringList kSlotTitles{"X axis — file 1", "Y axis — file 2", "Z axis — file 3"};
+    static const QStringList kSlotTitles{"Source A — X start", "Source B — X end",
+                                         "Source C — Y destination"};
     for (int i = 0; i < 3; ++i) {
         auto* column = new QWidget(content);
         auto* column_layout = new QVBoxLayout(column);
@@ -115,6 +138,13 @@ QWidget* ThreeWavScreen::BuildFileSetPageContent(QWidget* parent) {
     }
 
     layout->addLayout(columns_row, /*stretch=*/1);
+
+    const QStringList z_options{"Phase motion", "Odd / even", "Crush", "Harmonic comb"};
+    z_selector_ = new AxisMorphSelector("Z axis — texture", z_options, content);
+    z_selector_->SetCurrentIndex(ValidZModeIndex(settings()->ThreeWavZMorph()));
+    layout->addWidget(z_selector_);
+    connect(z_selector_, &AxisMorphSelector::currentIndexChanged, this,
+            &ThreeWavScreen::OnZModeChanged);
 
     auto* generate_row = new QHBoxLayout();
     generate_button_ = new QPushButton("Generate wavetable bank", content);
@@ -165,6 +195,11 @@ void ThreeWavScreen::RefreshGenerateEnabled() {
     if (generate_button_ != nullptr) {
         generate_button_->setEnabled(service_->AllFilesSet());
     }
+}
+
+void ThreeWavScreen::OnZModeChanged(int index) {
+    service_->SetZMode(ZModeFromIndex(index));
+    settings()->SetThreeWavZMorph(index);
 }
 
 }  // namespace fim::ui

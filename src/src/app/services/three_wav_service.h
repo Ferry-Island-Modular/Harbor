@@ -4,6 +4,7 @@
 #include <array>
 
 #include "app/services/generate_service_base.h"
+#include "dsp/three_wav_generator.h"
 
 namespace fim::app {
 
@@ -25,12 +26,14 @@ public:
 
     // True when all 3 slots are populated with non-empty paths.
     bool AllFilesSet() const;
+    void SetZMode(fim::dsp::ThreeWavZMode mode);
 
 protected:
     GenerationTask CreateGenerationTask() const override;
 
 private:
     std::array<QString, 3> files_;
+    fim::dsp::ThreeWavGenerateOptions options_;
 };
 
 }  // namespace fim::app
