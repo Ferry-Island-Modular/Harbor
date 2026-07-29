@@ -11,8 +11,10 @@ add_executable(fim-tests
     dsp_stft_test.cpp
     dsp_fft_resampler_test.cpp
     dsp_spectral_modifier_test.cpp
+    dsp_source_frame_selector_test.cpp
     dsp_cycle_extractor_test.cpp
     dsp_post_effects_test.cpp
+    dsp_generator_contract_test.cpp
     dsp_serum_loader_test.cpp
     dsp_serum_morpher_test.cpp
     dsp_resample_test.cpp
@@ -31,10 +33,14 @@ add_executable(fim-tests
     ../src/dsp/stft.cpp
     ../src/dsp/fft_resampler.cpp
     ../src/dsp/spectral_modifier.cpp
+    ../src/dsp/source_frame_selector.cpp
     ../src/dsp/cycle_extractor.cpp
     ../src/dsp/post_effects.cpp
     ../src/dsp/serum_loader.cpp
     ../src/dsp/serum_morpher.cpp
+    ../src/dsp/serum_generator.cpp
+    ../src/dsp/three_wav_generator.cpp
+    ../src/dsp/single_wav_generator.cpp
 )
 
 target_include_directories(fim-tests PRIVATE
@@ -49,7 +55,6 @@ target_link_libraries(fim-tests PRIVATE
     miniaudio_headers
     dr_wav_headers
     SampleRate::samplerate
-    spdlog::spdlog
 )
 
 # Disable Qt AUTOMOC for the test target — it has no Q_OBJECTs.

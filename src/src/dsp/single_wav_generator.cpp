@@ -5,6 +5,9 @@
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <random>
+#include <stdexcept>
 #include <vector>
 
 #include "dr_wav.h"
@@ -32,7 +35,13 @@ SingleWavGenerator::SingleWavGenerator(std::size_t samples, std::size_t oversamp
     : samples_(samples),
       oversample_factor_(oversample_factor),
       n_samples_(samples * oversample_factor),
-      num_pages_(num_pages) {}
+      num_pages_(num_pages) {
+    if (samples != 2048 || oversample_factor != 4 || num_pages != 8) {
+        throw std::invalid_argument(
+            "SingleWavGenerator currently supports only 2048 samples, 4x oversampling, and 8 "
+            "pages");
+    }
+}
 
 bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
                                   const std::filesystem::path& output_directory,
@@ -57,6 +66,11 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
     const auto magnitude = Magnitude(bins);
     const auto phase = Phase(bins);
     const std::size_t num_frames = bins.size();
+    const auto selected_frames =
+        SelectSourceFrames(magnitude, options.frame_selection, kCellsPerSide);
+    if (selected_frames.size() != kCellsPerSide) {
+        return false;
+    }
 
     // Stft::Analyze and the Magnitude/Phase helpers return arrays indexed
     // [frame][bin] (matching the Stft::Analyze internal frame loop). But
@@ -76,9 +90,24 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
 
     CycleExtractor extractor(kStftFftSize, n_samples_);
     FftResampler downsampler(n_samples_, samples_);
+    std::optional<std::uint32_t> coherent_phase_seed;
+    if (options.coherent_phase_randomization && options.z_mode == ZMode::kRandom) {
+        coherent_phase_seed = options.random_seed.has_value()
+                                  ? *options.random_seed
+                                  : static_cast<std::uint32_t>(std::random_device{}());
+    }
 
     for (std::size_t z = 0; z < num_pages_; ++z) {
-        SpectralModifier modifier;
+        // This is the original RNG stream used by Legacy mode: one modifier
+        // per page, consumed sequentially by its 64 cells.
+        std::optional<SpectralModifier> legacy_modifier;
+        if (!coherent_phase_seed.has_value()) {
+            if (options.random_seed.has_value()) {
+                legacy_modifier.emplace(*options.random_seed + static_cast<std::uint32_t>(z));
+            } else {
+                legacy_modifier.emplace();
+            }
+        }
 
         // Precompute the Z-crush params for this page if crush mode is
         // selected. We use `z` (the page index) as the crush intensity so
@@ -93,13 +122,42 @@ bool SingleWavGenerator::Generate(const std::filesystem::path& input_audio_path,
 
         for (std::size_t y = 0; y < kCellsPerSide; ++y) {
             for (std::size_t x = 0; x < kCellsPerSide; ++x) {
-                auto mag_copy = magnitude_t;
-                auto phase_copy = phase_t;
-                modifier.Apply(mag_copy, phase_copy, static_cast<int>(x), static_cast<int>(y),
-                               static_cast<int>(z), options.y_mode, options.z_mode);
+                std::vector<std::vector<float>> mag_copy;
+                std::vector<std::vector<float>> phase_copy;
+                std::size_t frame_selection = selected_frames[x];
 
-                const std::size_t frame_selection = static_cast<std::size_t>(
-                    static_cast<float>(x) / 7.0f * static_cast<float>(num_frames - 1));
+                // The legacy X-stretch reads the time-averaged envelope, so
+                // preserving it requires the complete analysis matrices.
+                // When X is source progression only, operate on the selected
+                // frame directly. This is both clearer and dramatically less
+                // expensive for long recordings.
+                if (options.apply_x_spectral_stretch) {
+                    mag_copy = magnitude_t;
+                    phase_copy = phase_t;
+                } else {
+                    mag_copy.assign(num_bins, std::vector<float>(1, 0.0f));
+                    phase_copy.assign(num_bins, std::vector<float>(1, 0.0f));
+                    for (std::size_t k = 0; k < num_bins; ++k) {
+                        mag_copy[k][0] = magnitude_t[k][frame_selection];
+                        phase_copy[k][0] = phase_t[k][frame_selection];
+                    }
+                    frame_selection = 0;
+                }
+
+                if (coherent_phase_seed.has_value()) {
+                    // Reset to the same seed for every cell and page. The
+                    // source phase may vary along X, but the random target is
+                    // stable across X/Y and Z only changes blend intensity.
+                    SpectralModifier coherent_modifier(*coherent_phase_seed);
+                    coherent_modifier.Apply(mag_copy, phase_copy, static_cast<int>(x),
+                                            static_cast<int>(y), static_cast<int>(z),
+                                            options.y_mode, options.z_mode,
+                                            options.apply_x_spectral_stretch);
+                } else {
+                    legacy_modifier->Apply(mag_copy, phase_copy, static_cast<int>(x),
+                                           static_cast<int>(y), static_cast<int>(z), options.y_mode,
+                                           options.z_mode, options.apply_x_spectral_stretch);
+                }
 
                 auto cell_oversampled = extractor.Extract(mag_copy, phase_copy, frame_selection);
 

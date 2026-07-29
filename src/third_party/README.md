@@ -15,7 +15,7 @@ actually on disk.
 ## Other dependencies
 
 - **Four-Seas** (the wavetable engine) is a git submodule under
-  `cpp/third_party/Four-Seas/`, pulled recursively (it brings its own DaisySP,
+  `src/third_party/Four-Seas/`, pulled recursively (it brings its own DaisySP,
   libDaisy, and stmlib nested submodules).
-- **libsamplerate**, **Catch2**, **spdlog** are not vendored — they come via
-  CMake `FetchContent` from GitHub at pinned tags. See `cpp/CMakeLists.txt`.
+- **libsamplerate** and **Catch2** are not vendored — they come via
+  CMake `FetchContent` from GitHub at pinned tags. See `src/CMakeLists.txt`.

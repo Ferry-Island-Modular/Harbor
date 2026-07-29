@@ -20,8 +20,7 @@ public:
     void SetZMode(fim::dsp::SerumMode mode);
 
 protected:
-    bool DoGenerate(const std::filesystem::path& input, const std::filesystem::path& output,
-                    const ProgressCallback& progress_cb) override;
+    GenerationTask CreateGenerationTask() const override;
 
 private:
     fim::dsp::SerumGenerateOptions options_;

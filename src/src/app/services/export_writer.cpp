@@ -1,5 +1,6 @@
 #include "app/services/export_writer.h"
 
+#include <QUuid>
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
@@ -16,6 +17,11 @@ constexpr int kNumPages = 8;
 constexpr int kCellsPerPage = 64;
 constexpr int kSourceCycleSamples = 2048;
 constexpr std::uint32_t kSampleRate = 44100;
+
+std::filesystem::path UniqueSibling(const std::filesystem::path& destination, const char* label) {
+    const std::string id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+    return destination.parent_path() / (destination.filename().string() + "." + label + "-" + id);
+}
 
 bool ReadWavMono16(const std::filesystem::path& path, std::vector<float>& out) {
     drwav wav;
@@ -69,6 +75,49 @@ bool WriteWavMono16(const std::filesystem::path& path, const std::vector<float>&
 }
 
 }  // namespace
+
+bool PublishStagedBank(const std::filesystem::path& staging,
+                       const std::filesystem::path& destination) {
+    if (staging.empty() || destination.empty() || destination.filename().empty()) {
+        return false;
+    }
+
+    std::error_code ec;
+    const auto parent = destination.parent_path();
+    if (!parent.empty()) {
+        std::filesystem::create_directories(parent, ec);
+        if (ec) {
+            return false;
+        }
+    }
+
+    const auto backup = UniqueSibling(destination, "backup");
+    const bool had_previous = std::filesystem::exists(destination, ec);
+    if (ec) {
+        return false;
+    }
+
+    if (had_previous) {
+        std::filesystem::rename(destination, backup, ec);
+        if (ec) {
+            return false;
+        }
+    }
+
+    std::filesystem::rename(staging, destination, ec);
+    if (ec) {
+        if (had_previous) {
+            std::error_code restore_ec;
+            std::filesystem::rename(backup, destination, restore_ec);
+        }
+        return false;
+    }
+
+    if (had_previous) {
+        std::filesystem::remove_all(backup, ec);
+    }
+    return true;
+}
 
 bool WriteBankToExportDir(const QString& source_dir, const QString& dest_dir,
                           int target_samples_per_cycle) {

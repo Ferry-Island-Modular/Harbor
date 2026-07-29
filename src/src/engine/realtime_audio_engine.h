@@ -3,8 +3,8 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <memory>
-#include <mutex>
 #include <string>
 
 #include "engine/wavetable_voice.h"
@@ -132,16 +132,16 @@ private:
     float smoothed_volume_ = 1.0f;
     static constexpr float kVolumeSmoothingCoeff = 0.001f;
 
-    // PlayMode state. Mode is read inside the callback under a mutex; the
-    // mutex is only contended on mode changes (rare).
-    mutable std::mutex mode_mutex_;
-    PlayMode mode_ = PlayMode::kSteady;
-    std::chrono::steady_clock::time_point sweep_start_time_;
-    float sweep_target_x_ = 0.0f;
-    float sweep_target_y_ = 0.0f;
-    float sweep_target_z_ = 0.0f;
-    float sweep_duration_ = 4.0f;
-    std::chrono::steady_clock::time_point arpeggio_start_time_;
+    // PlayMode state is lock-free from the audio callback's perspective. Time
+    // points are stored as steady-clock nanoseconds so GUI updates cannot ever
+    // block realtime rendering.
+    std::atomic<PlayMode> mode_{PlayMode::kSteady};
+    std::atomic<std::int64_t> sweep_start_ns_{0};
+    std::atomic<float> sweep_target_x_{0.0f};
+    std::atomic<float> sweep_target_y_{0.0f};
+    std::atomic<float> sweep_target_z_{0.0f};
+    std::atomic<float> sweep_duration_{4.0f};
+    std::atomic<std::int64_t> arpeggio_start_ns_{0};
 
     // MIDI base note for arpeggio
     std::atomic<int> midi_base_note_{60};

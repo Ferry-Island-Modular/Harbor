@@ -15,13 +15,14 @@ public:
     explicit SingleWavService(QObject* parent = nullptr);
     ~SingleWavService() override = default;
 
-    // Configure the morph modes used by the next Generate() call.
+    // Configure the source treatment and morph modes used by the next
+    // Generate() call.
+    void SetSourceMode(fim::dsp::SourceMode mode);
     void SetYMode(fim::dsp::YMode mode);
     void SetZMode(fim::dsp::ZMode mode);
 
 protected:
-    bool DoGenerate(const std::filesystem::path& input, const std::filesystem::path& output,
-                    const ProgressCallback& progress_cb) override;
+    GenerationTask CreateGenerationTask() const override;
 
 private:
     fim::dsp::GenerateOptions options_;

@@ -18,6 +18,12 @@ float ClampUnit(float v) {
     return std::clamp(v, 0.0f, 1.0f);
 }
 
+std::int64_t SteadyNowNanoseconds() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(
+               std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
+
 }  // namespace
 
 RealtimeAudioEngine::RealtimeAudioEngine(float sample_rate, size_t block_size)
@@ -98,53 +104,56 @@ void RealtimeAudioEngine::SetVolume(float volume) {
 }
 
 void RealtimeAudioEngine::SetMode(PlayMode mode) {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
-    mode_ = mode;
     if (mode == PlayMode::kSweep) {
-        sweep_start_time_ = std::chrono::steady_clock::now();
+        sweep_start_ns_.store(SteadyNowNanoseconds(), std::memory_order_relaxed);
     } else if (mode == PlayMode::kArpeggio) {
-        arpeggio_start_time_ = std::chrono::steady_clock::now();
+        arpeggio_start_ns_.store(SteadyNowNanoseconds(), std::memory_order_relaxed);
     }
+    mode_.store(mode, std::memory_order_release);
 }
 
 PlayMode RealtimeAudioEngine::mode() const {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
-    return mode_;
+    return mode_.load(std::memory_order_acquire);
 }
 
 void RealtimeAudioEngine::SetSweepTarget(float target_x, float target_y, float target_z,
                                          float duration) {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
-    sweep_target_x_ = target_x;
-    sweep_target_y_ = target_y;
-    sweep_target_z_ = target_z;
-    sweep_duration_ = duration;
+    sweep_target_x_.store(target_x, std::memory_order_relaxed);
+    sweep_target_y_.store(target_y, std::memory_order_relaxed);
+    sweep_target_z_.store(target_z, std::memory_order_relaxed);
+    sweep_duration_.store(std::max(duration, 0.0f), std::memory_order_relaxed);
 }
 
 void RealtimeAudioEngine::AudioCallback(float* output, size_t num_frames) {
     // Update positions for SWEEP/ARPEGGIO modes BEFORE rendering this block.
-    {
-        std::lock_guard<std::mutex> lock(mode_mutex_);
-        const auto now = std::chrono::steady_clock::now();
+    const PlayMode current_mode = mode_.load(std::memory_order_acquire);
+    const std::int64_t now_ns = SteadyNowNanoseconds();
 
-        if (mode_ == PlayMode::kSweep) {
-            const float elapsed_sec = std::chrono::duration<float>(now - sweep_start_time_).count();
-            const auto pos = SweepPositionAt(elapsed_sec, sweep_duration_, sweep_target_x_,
-                                             sweep_target_y_, sweep_target_z_);
-            voice_.SetX(pos.x);
-            voice_.SetY(pos.y);
-            voice_.SetZ(pos.z);
-            if (elapsed_sec >= sweep_duration_) {
-                mode_ = PlayMode::kSteady;  // sweep done
-            }
-        } else if (mode_ == PlayMode::kArpeggio) {
-            const float elapsed_sec =
-                std::chrono::duration<float>(now - arpeggio_start_time_).count();
-            const int idx = ArpeggioIndexAt(elapsed_sec);
-            const int interval = kArpeggioIntervals[idx % kArpeggioIntervals.size()];
-            const int base = midi_base_note_.load(std::memory_order_relaxed);
-            voice_.SetFrequency(MidiToFrequency(base + interval));
+    if (current_mode == PlayMode::kSweep) {
+        const float elapsed_sec =
+            static_cast<float>(now_ns - sweep_start_ns_.load(std::memory_order_relaxed)) /
+            1'000'000'000.0f;
+        const float duration = sweep_duration_.load(std::memory_order_relaxed);
+        const auto pos =
+            SweepPositionAt(elapsed_sec, duration, sweep_target_x_.load(std::memory_order_relaxed),
+                            sweep_target_y_.load(std::memory_order_relaxed),
+                            sweep_target_z_.load(std::memory_order_relaxed));
+        voice_.SetX(pos.x);
+        voice_.SetY(pos.y);
+        voice_.SetZ(pos.z);
+        if (elapsed_sec >= duration) {
+            PlayMode expected = PlayMode::kSweep;
+            mode_.compare_exchange_strong(expected, PlayMode::kSteady, std::memory_order_release,
+                                          std::memory_order_relaxed);
         }
+    } else if (current_mode == PlayMode::kArpeggio) {
+        const float elapsed_sec =
+            static_cast<float>(now_ns - arpeggio_start_ns_.load(std::memory_order_relaxed)) /
+            1'000'000'000.0f;
+        const int idx = ArpeggioIndexAt(elapsed_sec);
+        const int interval = kArpeggioIntervals[idx % kArpeggioIntervals.size()];
+        const int base = midi_base_note_.load(std::memory_order_relaxed);
+        voice_.SetFrequency(MidiToFrequency(base + interval));
     }
 
     // Render audio from the voice.

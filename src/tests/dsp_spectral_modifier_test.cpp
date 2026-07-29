@@ -79,6 +79,24 @@ TEST_CASE("SpectralModifier with z=0 leaves the phase array unchanged",
     }
 }
 
+TEST_CASE("SpectralModifier can leave X dedicated to source progression",
+          "[dsp][spectral_modifier]") {
+    auto low_x = MakeFlat(/*num_bins=*/16, /*num_frames=*/2);
+    auto high_x = low_x;
+    fim::dsp::SpectralModifier low_modifier(/*seed=*/42);
+    fim::dsp::SpectralModifier high_modifier(/*seed=*/42);
+
+    low_modifier.Apply(low_x.magnitude, low_x.phase, /*x=*/0, /*y=*/3, /*z=*/0,
+                       fim::dsp::YMode::kTilt, fim::dsp::ZMode::kRandom,
+                       /*apply_x_spectral_stretch=*/false);
+    high_modifier.Apply(high_x.magnitude, high_x.phase, /*x=*/7, /*y=*/3, /*z=*/0,
+                        fim::dsp::YMode::kTilt, fim::dsp::ZMode::kRandom,
+                        /*apply_x_spectral_stretch=*/false);
+
+    REQUIRE(low_x.magnitude == high_x.magnitude);
+    REQUIRE(low_x.phase == high_x.phase);
+}
+
 TEST_CASE("SpectralModifier with z>0 produces deterministic output for a fixed seed",
           "[dsp][spectral_modifier]") {
     // Apply with the same seed twice; outputs must be bit-identical.
@@ -97,6 +115,23 @@ TEST_CASE("SpectralModifier with z>0 produces deterministic output for a fixed s
             REQUIRE(spec_a.phase[k][f] == spec_b.phase[k][f]);
         }
     }
+}
+
+TEST_CASE("Resetting a phase seed shares phase across Y treatments", "[dsp][spectral_modifier]") {
+    auto dark = MakeFlat(/*num_bins=*/16, /*num_frames=*/1);
+    auto bright = MakeFlat(/*num_bins=*/16, /*num_frames=*/1);
+    fim::dsp::SpectralModifier dark_modifier(/*seed=*/12345);
+    fim::dsp::SpectralModifier bright_modifier(/*seed=*/12345);
+
+    dark_modifier.Apply(dark.magnitude, dark.phase, /*x=*/3, /*y=*/0, /*z=*/5,
+                        fim::dsp::YMode::kTilt, fim::dsp::ZMode::kRandom,
+                        /*apply_x_spectral_stretch=*/false);
+    bright_modifier.Apply(bright.magnitude, bright.phase, /*x=*/3, /*y=*/7, /*z=*/5,
+                          fim::dsp::YMode::kTilt, fim::dsp::ZMode::kRandom,
+                          /*apply_x_spectral_stretch=*/false);
+
+    REQUIRE(dark.phase == bright.phase);
+    REQUIRE(dark.magnitude != bright.magnitude);
 }
 
 TEST_CASE("SpectralModifier formant mode moves the peak bin", "[dsp][spectral_modifier]") {

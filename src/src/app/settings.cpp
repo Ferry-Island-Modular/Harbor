@@ -14,6 +14,7 @@ constexpr const char* kKeyAudioDevice = "audio_device";
 constexpr const char* kKeyPreviewVolume = "preview_volume";
 constexpr const char* kKeyYMorph = "y_morph";
 constexpr const char* kKeyZMorph = "z_morph";
+constexpr const char* kKeyAnyWavSourceMode = "any_wav_source_mode";
 constexpr const char* kKeySerumYMorph = "serum_y_morph";
 constexpr const char* kKeySerumZMorph = "serum_z_morph";
 
@@ -76,6 +77,14 @@ int Settings::ZMorph() const {
 
 void Settings::SetZMorph(int index) {
     backing_.setValue(kKeyZMorph, index);
+}
+
+int Settings::AnyWavSourceMode() const {
+    return backing_.value(kKeyAnyWavSourceMode, 0).toInt();
+}
+
+void Settings::SetAnyWavSourceMode(int index) {
+    backing_.setValue(kKeyAnyWavSourceMode, index);
 }
 
 int Settings::SerumYMorph() const {

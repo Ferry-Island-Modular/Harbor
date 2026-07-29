@@ -27,6 +27,8 @@ struct SerumGenerateOptions {
 //   num_pages   = 8    (Z dimension, fixed by FourSeas hardware)
 class SerumGenerator {
 public:
+    // Values outside the fixed Serum/Four Seas contract throw
+    // std::invalid_argument.
     explicit SerumGenerator(std::size_t samples = 2048, std::size_t num_pages = 8);
 
     using ProgressCallback = std::function<void(int percent)>;

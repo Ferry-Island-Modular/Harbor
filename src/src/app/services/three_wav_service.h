@@ -27,8 +27,7 @@ public:
     bool AllFilesSet() const;
 
 protected:
-    bool DoGenerate(const std::filesystem::path& input, const std::filesystem::path& output,
-                    const ProgressCallback& progress_cb) override;
+    GenerationTask CreateGenerationTask() const override;
 
 private:
     std::array<QString, 3> files_;

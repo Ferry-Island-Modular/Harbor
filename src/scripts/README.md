@@ -1,59 +1,78 @@
 # Packaging scripts
 
-## `package-macos.sh`
+## macOS
 
-Builds and packages an Apple Silicon `.dmg` of Harbor for
-internal team distribution. Bundles Qt frameworks via `macdeployqt` and
-applies an ad-hoc code signature so Gatekeeper can parse the bundle.
+`package-macos.sh` bundles Qt into a staging copy of Harbor and creates a
+drag-to-install `.dmg`. It never modifies the development `.app`.
 
-**Not** notarized. First-time launch on a recipient machine will be
-blocked by Gatekeeper with an "app is damaged" or "unidentified
-developer" message — testers need the workaround below.
+With no signing options it produces an ad-hoc-signed internal build. With a
+Developer ID identity and `--notarize`, it enables the hardened runtime, adds
+secure timestamps, submits the DMG to Apple's notary service, waits for
+acceptance, staples the ticket, and checks it with Gatekeeper.
 
 ### Usage
 
 ```bash
-# Build + package (run from repo root)
+# Internal build using the default src/build directory.
 src/scripts/package-macos.sh
 
-# Skip the cmake build step (use existing src/build/Harbor.app)
-src/scripts/package-macos.sh --skip-build
+# Package the repository-root build used by local Codex sessions.
+src/scripts/package-macos.sh --skip-build --build-dir build
+
+# Public release after completing the one-time setup below.
+export APPLE_DEVELOPER_ID="Developer ID Application: Ferry Island Modular Oy (TEAMID)"
+export APPLE_NOTARY_KEYCHAIN_PROFILE="harbor-notary"
+src/scripts/package-macos.sh --notarize
 ```
 
-Output: `src/build/dist/FIM-Config-Tool-<git-version>.dmg`
+Output: `<build-dir>/dist/Harbor-<git-version>.dmg`
+
+Run `src/scripts/package-macos.sh --help` for all overrides.
+
+### One-time Apple setup
+
+1. Enroll in the [Apple Developer Program][apple-membership]. Organization
+   enrollment is preferable if Gatekeeper should display Ferry Island Modular
+   rather than an individual's legal name.
+2. Install a **Developer ID Application** certificate and its private key in
+   the login Keychain. Xcode can create this from Settings → Accounts →
+   Manage Certificates.
+3. Create an app-specific password for the Apple Account, then store the
+   notarization credentials in Keychain:
+
+   ```bash
+   xcrun notarytool store-credentials "harbor-notary" \
+       --apple-id "developer@example.com" \
+       --team-id "TEAMID"
+   ```
+
+   `notarytool` securely prompts for the app-specific password. The release
+   script receives only the Keychain profile name; no password is placed in
+   the repository, environment, or shell history.
+4. Confirm the certificate identity:
+
+   ```bash
+   security find-identity -v -p codesigning
+   ```
+
+The certificate name must begin with `Developer ID Application`. A Mac
+Development, Apple Development, Mac Distribution, or ad-hoc identity will not
+satisfy Apple's notarization requirements.
+
+[apple-membership]: https://developer.apple.com/programs/enroll/
 
 ### Tester instructions
 
-Send the recipient this snippet along with the `.dmg`:
+For a notarized release:
 
 > 1. Open the `.dmg` and drag **Harbor** to your Applications folder.
-> 2. Open **Terminal** and run:
->    ```
->    xattr -dr com.apple.quarantine "/Applications/Harbor.app"
->    ```
-> 3. Launch from Applications normally.
->
-> Alternative (no Terminal): right-click the app in Applications → Open
-> → click **Open** in the warning dialog. You only need to do this once;
-> macOS remembers it after.
+> 2. Launch Harbor from Applications.
 
-### Why the workaround is needed
+For an ad-hoc internal build, Gatekeeper may require right-click → Open, or:
 
-The build is signed with an *ad-hoc* signature (`codesign --sign -`),
-which is structurally valid but not issued by an Apple Developer ID
-certificate. macOS Gatekeeper will refuse to launch unsigned or
-ad-hoc-signed apps that arrived over the network (download, AirDrop,
-email attachment, USB stick mounted as a network volume) until the
-quarantine extended attribute is removed.
-
-For a real public release we'd need:
-1. Apple Developer Program membership ($99/yr)
-2. A "Developer ID Application" certificate
-3. `codesign` with that cert + hardened runtime
-4. Submit to Apple's notary service via `notarytool`
-5. `xcrun stapler staple` the result
-
-This is tracked as a future improvement in `docs/followups.md`.
+```bash
+xattr -dr com.apple.quarantine "/Applications/Harbor.app"
+```
 
 ### Apple Silicon only
 
@@ -61,3 +80,55 @@ The script targets only the host architecture. On an arm64 dev machine
 that means the `.dmg` runs on M1+ Macs only — Intel testers would need
 a separate build (or a universal binary, which requires building twice
 and `lipo`-merging the executables and Qt frameworks).
+
+## Windows beta packages
+
+`package-windows.ps1` builds a self-contained Qt deployment folder and emits:
+
+- a per-user NSIS installer with upgrade/uninstall support; and
+- a portable ZIP for testers who prefer not to install.
+
+The installer does not require administrator access for Harbor itself. It
+bundles Microsoft's official Visual C++ Redistributable, which may request
+elevation if the runtime needs to be installed.
+
+Run from a Windows PowerShell session with Qt, Visual Studio, and NSIS on
+`PATH`:
+
+```powershell
+.\src\scripts\package-windows.ps1
+
+# Package an existing Release build.
+.\src\scripts\package-windows.ps1 -SkipBuild -BuildDir src\build
+
+# Produce only the portable ZIP when NSIS is unavailable.
+.\src\scripts\package-windows.ps1 -SkipBuild -SkipInstaller
+```
+
+Outputs are written to `<build-dir>\dist`. CI publishes both files in the
+`fim-config-tool-windows` artifact.
+
+These beta packages are unsigned. SmartScreen may require the tester to click
+**More info → Run anyway**, after confirming that the file came directly from
+Ferry Island Modular. Self-signing would not remove that warning.
+
+## Windows signing without an annual certificate
+
+The preferred low-cost path is an MSIX published through the Microsoft Store.
+New individual and company developer accounts have no registration fee, and
+the Store signs MSIX packages, hosts them, and supplies automatic updates.
+
+For direct downloads, Microsoft Artifact Signing is the managed alternative to
+buying and protecting a traditional OV certificate. Its Basic tier is
+currently $9.99/month. Neither Artifact Signing nor an OV/EV certificate
+guarantees that a brand-new download avoids SmartScreen reputation prompts;
+Microsoft specifically recommends Store distribution when avoiding that prompt
+is the priority.
+
+- [Microsoft Store developer registration][store-account]
+- [Windows code-signing options][windows-signing]
+- [Artifact Signing pricing][artifact-signing]
+
+[store-account]: https://learn.microsoft.com/windows/apps/publish/partner-center/open-a-developer-account
+[windows-signing]: https://learn.microsoft.com/windows/apps/package-and-deploy/code-signing-options
+[artifact-signing]: https://learn.microsoft.com/azure/artifact-signing/how-to-change-sku

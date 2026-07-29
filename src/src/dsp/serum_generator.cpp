@@ -5,6 +5,7 @@
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 #include "dr_wav.h"
@@ -22,7 +23,12 @@ constexpr std::uint32_t kOutputSampleRate = 44100;
 }  // namespace
 
 SerumGenerator::SerumGenerator(std::size_t samples, std::size_t num_pages)
-    : samples_(samples), num_pages_(num_pages) {}
+    : samples_(samples), num_pages_(num_pages) {
+    if (samples != 2048 || num_pages != 8) {
+        throw std::invalid_argument(
+            "SerumGenerator currently supports only 2048 samples and 8 pages");
+    }
+}
 
 bool SerumGenerator::Generate(const std::filesystem::path& input_audio_path,
                               const std::filesystem::path& output_directory,

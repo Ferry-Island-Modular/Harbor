@@ -10,11 +10,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(FIM_BUILD_TESTS "Build fim-config-tool unit tests" ON)
+option(FIM_BUILD_EVAL_TOOLS "Build deterministic wavetable evaluation tools" OFF)
 if(FIM_BUILD_TESTS)
     enable_testing()
 endif()
 
-# Explicit default build type. FetchContent dependencies (spdlog etc.) can
+# Explicit default build type. FetchContent dependencies can
 # silently set this if we don't, leading to non-deterministic optimization.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
@@ -78,17 +79,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 
-# spdlog — logging
-FetchContent_Declare(
-    spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG        v1.14.1
-    GIT_SHALLOW    TRUE
-)
-set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
-set(SPDLOG_BUILD_TESTS   OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(spdlog)
-
 # FourSeas engine (via submodule).
 #
 # wavetable_oscillator.h is logically header-only, but it transitively pulls
@@ -120,12 +110,12 @@ set(STMLIB_DIR    "${FOURSEAS_ROOT}/stmlib")
 if(NOT EXISTS "${FOURSEAS_ROOT}/wavetable_oscillator.h")
     message(FATAL_ERROR
         "FourSeas submodule not initialized. Run: "
-        "git submodule update --init --recursive cpp/third_party/Four-Seas")
+        "git submodule update --init --recursive src/third_party/Four-Seas")
 endif()
 if(NOT EXISTS "${DAISYSP_DIR}/Source/daisysp.h")
     message(FATAL_ERROR
         "DaisySP nested submodule missing under Four-Seas/DaisySP. "
-        "Run: git submodule update --init --recursive cpp/third_party/Four-Seas")
+        "Run: git submodule update --init --recursive src/third_party/Four-Seas")
 endif()
 
 add_library(fourseas_engine INTERFACE)
@@ -160,6 +150,7 @@ target_compile_definitions(fourseas_engine INTERFACE
 # input.scss is the single source of truth for styling. dart-sass produces
 # generated/app.qss at build time, which is then embedded via Qt resources.
 find_program(NPX_EXECUTABLE npx REQUIRED)
+set(DART_SASS_VERSION "1.101.3")
 
 set(SCSS_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/styles/input.scss")
 set(QSS_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/app.qss")
@@ -168,7 +159,7 @@ file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 add_custom_command(
     OUTPUT  "${QSS_OUTPUT}"
-    COMMAND "${NPX_EXECUTABLE}" --yes sass
+    COMMAND "${NPX_EXECUTABLE}" --yes "sass@${DART_SASS_VERSION}"
             "${SCSS_INPUT}"
             "${QSS_OUTPUT}"
             --no-source-map
@@ -183,7 +174,7 @@ add_custom_target(transpile_qss ALL DEPENDS "${QSS_OUTPUT}")
 # ----------------------------------------------------------------------------
 # Vendored single-header / single-translation-unit libraries
 # ----------------------------------------------------------------------------
-# See cpp/third_party/README.md for provenance and licenses.
+# See third_party/README.md for provenance and licenses.
 
 # PFFFT — single-translation-unit FFT library (BSD-like).
 add_library(pffft STATIC
@@ -231,6 +222,7 @@ qt_add_executable(fim-config-tool
     src/dsp/stft.cpp
     src/dsp/fft_resampler.cpp
     src/dsp/spectral_modifier.cpp
+    src/dsp/source_frame_selector.cpp
     src/dsp/cycle_extractor.cpp
     src/dsp/post_effects.cpp
     src/dsp/serum_loader.cpp
@@ -304,7 +296,6 @@ target_link_libraries(fim-config-tool PRIVATE
     miniaudio_headers
     dr_wav_headers
     SampleRate::samplerate
-    spdlog::spdlog
 )
 
 # Output binary name. The CMake target stays "fim-config-tool" (an
@@ -317,10 +308,27 @@ if(NOT APPLE AND NOT WIN32)
     set_target_properties(fim-config-tool PROPERTIES OUTPUT_NAME "harbor")
 endif()
 
+if(WIN32)
+    set(HARBOR_ICON_WINDOWS
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/Harbor.ico")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/Harbor.rc.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/Harbor.rc"
+        @ONLY
+    )
+    target_sources(fim-config-tool PRIVATE
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/Harbor.rc"
+    )
+    set_target_properties(fim-config-tool PROPERTIES
+        QT_WINDOWS_APP_PROJECT_IDENTIFIER "com.ferryislandmodular.harbor"
+        QT_WINDOWS_APP_PROJECT_EXECUTION_LEVEL "asInvoker"
+    )
+endif()
+
 # Deployment finalization (on macOS this builds a .app bundle)
 if(APPLE)
     # Bundle the app icon. The .icns file is generated from
-    # cpp/resources/icon/harbor-source.svg via cpp/scripts/generate-icon.sh —
+    # resources/icon/harbor-source.svg via scripts/generate-icon.sh —
     # rerun that script after editing the source SVG.
     set(APP_ICON_MACOSX "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/Harbor.icns")
     set_source_files_properties("${APP_ICON_MACOSX}" PROPERTIES
@@ -341,4 +349,36 @@ endif()
 
 if(FIM_BUILD_TESTS)
     add_subdirectory(tests)
+endif()
+
+if(FIM_BUILD_EVAL_TOOLS)
+    add_executable(fim-wavetable-eval
+        tools/wavetable_eval.cpp
+        src/engine/single_header_impls.cpp
+        src/engine/wav_loader.cpp
+        src/engine/wavetable_bank.cpp
+        src/engine/wavetable_voice.cpp
+        src/dsp/window.cpp
+        src/dsp/wav_loader.cpp
+        src/dsp/real_fft.cpp
+        src/dsp/stft.cpp
+        src/dsp/fft_resampler.cpp
+        src/dsp/spectral_modifier.cpp
+        src/dsp/source_frame_selector.cpp
+        src/dsp/cycle_extractor.cpp
+        src/dsp/post_effects.cpp
+        src/dsp/single_wav_generator.cpp
+    )
+    target_include_directories(fim-wavetable-eval PRIVATE src)
+    target_link_libraries(fim-wavetable-eval PRIVATE
+        fourseas_engine
+        pffft
+        miniaudio_headers
+        dr_wav_headers
+    )
+    set_target_properties(fim-wavetable-eval PROPERTIES
+        AUTOMOC OFF
+        AUTORCC OFF
+        AUTOUIC OFF
+    )
 endif()

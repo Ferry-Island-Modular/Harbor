@@ -3,6 +3,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
+#include <string>
 #include <vector>
 
 #include "app/services/export_writer.h"
@@ -36,6 +38,20 @@ void WriteFakeBank(const std::filesystem::path& dir, int num_pages = 8) {
     }
 }
 
+void WriteMarker(const std::filesystem::path& path, const std::string& value) {
+    std::ofstream stream(path);
+    REQUIRE(stream.good());
+    stream << value;
+}
+
+std::string ReadMarker(const std::filesystem::path& path) {
+    std::ifstream stream(path);
+    REQUIRE(stream.good());
+    std::string value;
+    stream >> value;
+    return value;
+}
+
 drwav_uint64 GetFrameCount(const std::filesystem::path& path) {
     drwav wav;
     REQUIRE(drwav_init_file(&wav, path.string().c_str(), nullptr));
@@ -64,6 +80,11 @@ TEST_CASE("WriteBankToExportDir copies 2048-sample bank unchanged when target is
         REQUIRE(std::filesystem::exists(path));
         REQUIRE(GetFrameCount(path) == 2048u * 64u);
     }
+
+    // Re-exporting to the same directory must overwrite rather than silently
+    // leaving the old bank in place.
+    REQUIRE(fim::app::WriteBankToExportDir(QString::fromStdString(src_dir.string()),
+                                           QString::fromStdString(dest_dir.string()), 2048));
 }
 
 TEST_CASE("WriteBankToExportDir downsamples to 256 sample cycles when target is 256",
@@ -94,4 +115,35 @@ TEST_CASE("WriteBankToExportDir returns false when source dir is missing", "[app
     const QString dest = tmp.filePath("dest");
     const bool ok = fim::app::WriteBankToExportDir(missing, dest, 2048);
     REQUIRE_FALSE(ok);
+}
+
+TEST_CASE("PublishStagedBank replaces an existing bank directory atomically",
+          "[app][export_writer]") {
+    QTemporaryDir tmp;
+    REQUIRE(tmp.isValid());
+    const auto root = std::filesystem::path(tmp.path().toStdString());
+    const auto staging = root / "cache.staging";
+    const auto destination = root / "cache";
+    std::filesystem::create_directories(staging);
+    std::filesystem::create_directories(destination);
+    WriteMarker(staging / "marker", "new");
+    WriteMarker(destination / "marker", "old");
+
+    REQUIRE(fim::app::PublishStagedBank(staging, destination));
+    REQUIRE_FALSE(std::filesystem::exists(staging));
+    REQUIRE(ReadMarker(destination / "marker") == "new");
+}
+
+TEST_CASE("PublishStagedBank restores the previous bank when publication fails",
+          "[app][export_writer]") {
+    QTemporaryDir tmp;
+    REQUIRE(tmp.isValid());
+    const auto root = std::filesystem::path(tmp.path().toStdString());
+    const auto missing_staging = root / "missing";
+    const auto destination = root / "cache";
+    std::filesystem::create_directories(destination);
+    WriteMarker(destination / "marker", "old");
+
+    REQUIRE_FALSE(fim::app::PublishStagedBank(missing_staging, destination));
+    REQUIRE(ReadMarker(destination / "marker") == "old");
 }
