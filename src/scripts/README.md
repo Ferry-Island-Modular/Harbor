@@ -132,3 +132,36 @@ is the priority.
 [store-account]: https://learn.microsoft.com/windows/apps/publish/partner-center/open-a-developer-account
 [windows-signing]: https://learn.microsoft.com/windows/apps/package-and-deploy/code-signing-options
 [artifact-signing]: https://learn.microsoft.com/azure/artifact-signing/how-to-change-sku
+
+## Draft beta releases
+
+The `beta-release` GitHub Actions workflow packages all supported platforms and
+creates a durable **draft prerelease** when a beta tag is pushed. Tags must:
+
+- use the form `v<project-version>-beta.<number>`, for example
+  `v0.1.0-beta.1`;
+- match the numeric version in `src/CMakeLists.txt`; and
+- point to a commit already merged into `master`.
+
+Before creating a tag, run the workflow manually from its Actions page. A
+manual run performs the complete build, test, and packaging matrix but does not
+create a tag or release.
+
+```bash
+git switch master
+git pull --ff-only
+git tag -a v0.1.0-beta.1 -m "Harbor v0.1.0 beta 1"
+git push origin v0.1.0-beta.1
+```
+
+The resulting GitHub release remains a draft. Its CI-generated macOS DMG is
+ad-hoc signed and is an internal placeholder. Before publishing the draft:
+
+1. build a Developer ID signed and notarized DMG from the tagged commit;
+2. replace the placeholder DMG;
+3. regenerate and replace `SHA256SUMS.txt`;
+4. complete the checklist in `docs/BETA_TESTING.md`; and
+5. replace the draft notes with user-facing changes and known issues.
+
+The Windows installer remains unsigned for the private beta and should be
+distributed with the SmartScreen instructions in the tester guide.

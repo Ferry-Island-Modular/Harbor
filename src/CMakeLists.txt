@@ -5,6 +5,10 @@ project(fim-config-tool
     LANGUAGES CXX C
 )
 
+set(HARBOR_BUILD_VERSION "${PROJECT_VERSION}" CACHE STRING
+    "User-visible Harbor version (for example 0.1.0-beta.1)"
+)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -253,12 +257,12 @@ qt_add_executable(fim-config-tool
 
 target_include_directories(fim-config-tool PRIVATE src)
 
-# Pinned version string used in the window title and About dialog. Pulled
-# from project(VERSION ...) at the top of this file. The string is exposed
-# to the C++ source as a HARBOR_VERSION macro so the title can be a
-# compile-time constant.
+# Version string used in the window title and About dialog. Normal builds use
+# project(VERSION); release packaging can supply HARBOR_BUILD_VERSION so beta
+# reports identify the exact build without changing Apple's numeric bundle
+# version.
 target_compile_definitions(fim-config-tool PRIVATE
-    HARBOR_VERSION="${PROJECT_VERSION}"
+    HARBOR_VERSION="${HARBOR_BUILD_VERSION}"
 )
 
 # Embed the transpiled QSS as a Qt resource. We use qt_add_resources rather

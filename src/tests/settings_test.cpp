@@ -19,15 +19,16 @@ namespace {
 class SettingsFixture {
 public:
     SettingsFixture() {
-        path_ = std::filesystem::temp_directory_path() / "fim_settings_test.ini";
-        std::filesystem::remove(path_);
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
-                           QString::fromStdString(path_.parent_path().string()));
+                           QString::fromStdString(std::filesystem::temp_directory_path().string()));
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QCoreApplication::setOrganizationName("FIM Test");
-        QCoreApplication::setApplicationName("fim_settings_test");
-        QSettings().clear();
-        QSettings().sync();
+        QCoreApplication::setApplicationName("fim_settings_test_" +
+                                             QString::number(QCoreApplication::applicationPid()));
+        QSettings settings;
+        path_ = settings.fileName().toStdString();
+        settings.clear();
+        settings.sync();
     }
 
     ~SettingsFixture() {

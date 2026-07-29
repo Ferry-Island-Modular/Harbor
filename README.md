@@ -12,7 +12,9 @@ The output is 8 WAV files (one per Z page), each containing 64 single-cycle wave
 
 ## Status
 
-Beta. macOS Apple Silicon only for distribution today; the source builds on Linux and Windows via CI.
+Beta. Packaged builds support Apple Silicon macOS, x86-64 Windows, and
+x86-64/ARM64 Linux. macOS public builds must be Developer ID signed and
+notarized; private-beta Windows builds are currently unsigned.
 
 ## Building
 
@@ -32,6 +34,10 @@ See [`src/README.md`](src/README.md) for more details.
 src/scripts/package-macos.sh
 # Output: src/build/dist/Harbor-<version>.dmg
 ```
+
+See the [packaging guide](src/scripts/README.md) for macOS signing,
+notarization, and Windows packaging. Beta testers should receive the
+[beta testing guide](docs/BETA_TESTING.md) with their download.
 
 ## License
 

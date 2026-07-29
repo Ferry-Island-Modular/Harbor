@@ -46,8 +46,9 @@ void WritePage(const std::filesystem::path& path) {
     f.write(reinterpret_cast<const char*>(samples.data()), data_bytes);
 }
 
-std::filesystem::path MakeBank() {
-    auto dir = std::filesystem::temp_directory_path() / "fim_voice_test_bank";
+std::filesystem::path MakeBank(const std::string& test_name) {
+    auto dir = std::filesystem::temp_directory_path() / ("fim_voice_test_bank_" + test_name);
+    std::filesystem::remove_all(dir);
     std::filesystem::create_directories(dir);
     for (size_t z = 1; z <= 8; ++z) {
         WritePage(dir / (std::to_string(z) + ".wav"));
@@ -58,7 +59,7 @@ std::filesystem::path MakeBank() {
 }  // namespace
 
 TEST_CASE("WavetableVoice renders silence when not playing", "[voice]") {
-    auto dir = MakeBank();
+    auto dir = MakeBank("silence");
     auto bank = fim::engine::WavetableBank::Load(dir.string());
     REQUIRE(bank != nullptr);
 
@@ -77,7 +78,7 @@ TEST_CASE("WavetableVoice renders silence when not playing", "[voice]") {
 }
 
 TEST_CASE("WavetableVoice produces nonzero audio when playing", "[voice]") {
-    auto dir = MakeBank();
+    auto dir = MakeBank("playing");
     auto bank = fim::engine::WavetableBank::Load(dir.string());
     REQUIRE(bank != nullptr);
 

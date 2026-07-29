@@ -1,0 +1,107 @@
+name: Harbor beta bug
+description: Report a problem found while testing a Harbor beta.
+title: "[Beta] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Harbor. Please include the smallest reproducible
+        example you can share.
+
+  - type: input
+    id: version
+    attributes:
+      label: Harbor version
+      description: Find this under Harbor → About Harbor.
+      placeholder: "0.1.0-beta.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating system
+      options:
+        - macOS — Apple Silicon
+        - Windows 11
+        - Windows 10
+        - Linux — x86-64
+        - Linux — ARM64
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version and computer model
+      placeholder: "macOS 26.5, MacBook Pro M2"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: input-mode
+    attributes:
+      label: Harbor mode
+      options:
+        - Application startup or general UI
+        - Single WAV
+        - Serum WAV
+        - Three WAVs
+        - Audio preview
+        - Export
+        - Installation or update
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the selected axis options and the last action before the problem.
+      placeholder: |
+        1. Open Single WAV
+        2. Drop ...
+        3. Select ...
+        4. Click Generate
+    validations:
+      required: true
+
+  - type: textarea
+    id: result
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+
+  - type: input
+    id: audio-device
+    attributes:
+      label: Audio device
+      description: Required only for preview or audio-output problems.
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Files and screenshots
+      description: |
+        Drag in screenshots, screen recordings, shareable input WAVs, or
+        generated banks. Do not upload private or unlicensed recordings.
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmation
+      options:
+        - label: I checked that this problem is not already reported.
+          required: true
