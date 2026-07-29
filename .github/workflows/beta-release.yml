@@ -1,0 +1,292 @@
+name: beta-release
+
+on:
+  push:
+    tags:
+      - 'v*-beta.*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Version label used for a packaging-only dry run
+        required: true
+        default: v0.1.0-beta.1
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate beta tag
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.release-tag.outputs.value }}
+      display_version: ${{ steps.release-tag.outputs.display_version }}
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag and release version
+        id: release-tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)-beta\.([0-9]+)$ ]]; then
+            echo "Expected a tag such as v0.1.0-beta.1, got: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          tag_version="${BASH_REMATCH[1]}"
+          beta_number="${BASH_REMATCH[2]}"
+          project_version="$(
+            sed -n '/project(fim-config-tool/,/)/s/^[[:space:]]*VERSION[[:space:]]*//p' \
+              src/CMakeLists.txt
+          )"
+          if [[ "$tag_version" != "$project_version" ]]; then
+            echo "Tag version $tag_version does not match CMake version $project_version" >&2
+            exit 1
+          fi
+
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            git fetch origin master
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+              echo "Beta tags must point to a commit already merged into master" >&2
+              exit 1
+            fi
+          fi
+
+          echo "value=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "display_version=${tag_version}-beta.${beta_number}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Package - ${{ matrix.os }}
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    env:
+      RELEASE_TAG: ${{ needs.validate.outputs.release_tag }}
+      DISPLAY_VERSION: ${{ needs.validate.outputs.display_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            qt_host: mac
+            qt_arch: clang_64
+            qt_version: '6.10.2'
+            artifact_name: harbor-beta-macos-internal
+          - os: ubuntu-latest
+            qt_host: linux
+            qt_arch: linux_gcc_64
+            qt_version: '6.8.3'
+            artifact_name: harbor-beta-linux-x86_64
+          - os: ubuntu-24.04-arm
+            qt_host: linux_arm64
+            qt_arch: linux_gcc_arm64
+            qt_version: '6.8.3'
+            artifact_name: harbor-beta-linux-aarch64
+          - os: windows-latest
+            qt_host: windows
+            qt_arch: win64_msvc2022_64
+            qt_version: '6.8.3'
+            artifact_name: harbor-beta-windows-x64
+
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            libgl1-mesa-dev \
+            libxkbcommon-dev \
+            libegl1-mesa-dev \
+            libfontconfig1 \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            libpulse-dev \
+            libasound2-dev
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt_version }}
+          host: ${{ matrix.qt_host }}
+          target: desktop
+          arch: ${{ matrix.qt_arch }}
+          cache: true
+
+      - name: Install Node for dart-sass
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configure Unix build
+        if: runner.os != 'Windows'
+        working-directory: src
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DHARBOR_BUILD_VERSION="$DISPLAY_VERSION"
+
+      - name: Configure Windows build
+        if: runner.os == 'Windows'
+        working-directory: src
+        run: cmake -B build -A x64 "-DHARBOR_BUILD_VERSION=$env:DISPLAY_VERSION"
+
+      - name: Build Unix
+        if: runner.os != 'Windows'
+        working-directory: src
+        run: cmake --build build --parallel
+
+      - name: Build Windows
+        if: runner.os == 'Windows'
+        working-directory: src
+        run: cmake --build build --parallel --config Release
+
+      - name: Test Unix
+        if: runner.os != 'Windows'
+        working-directory: src
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Test Windows
+        if: runner.os == 'Windows'
+        working-directory: src
+        run: ctest --test-dir build --output-on-failure -C Release
+
+      - name: Package Linux AppImage
+        if: runner.os == 'Linux'
+        working-directory: src
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+        run: |
+          set -euo pipefail
+          arch="$(uname -m)"
+          wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${arch}.AppImage"
+          wget -q "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${arch}.AppImage"
+          chmod +x linuxdeploy-*.AppImage
+          mkdir -p \
+            AppDir/usr/bin \
+            AppDir/usr/share/applications \
+            AppDir/usr/share/icons/hicolor/512x512/apps
+          cp build/harbor AppDir/usr/bin/
+          cp resources/icon/harbor-source.png \
+            AppDir/usr/share/icons/hicolor/512x512/apps/harbor.png
+          cat > AppDir/usr/share/applications/harbor.desktop <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=Harbor
+          Exec=harbor
+          Icon=harbor
+          Categories=Utility;
+          EOF
+          ./linuxdeploy-"${arch}".AppImage \
+            --appdir AppDir \
+            --plugin qt \
+            --output appimage
+          mkdir -p build/release-assets
+          mv Harbor*.AppImage \
+            "build/release-assets/Harbor-${RELEASE_TAG}-linux-${arch}.AppImage"
+
+      - name: Install NSIS
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install nsis --version=3.12.0 --yes --no-progress
+
+      - name: Package Windows installer and portable ZIP
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./src/scripts/package-windows.ps1 `
+            -SkipBuild `
+            -BuildDir src/build `
+            -PackageVersion $env:RELEASE_TAG
+
+      - name: Package internal macOS DMG
+        if: runner.os == 'macOS'
+        run: |
+          src/scripts/package-macos.sh \
+            --skip-build \
+            --build-dir src/build
+
+      - name: Upload Linux package
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: src/build/release-assets/Harbor-*.AppImage
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Windows packages
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            src/build/dist/Harbor-*-windows-x64-setup.exe
+            src/build/dist/Harbor-*-windows-x64-portable.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload internal macOS package
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: src/build/dist/Harbor-*.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+  draft-release:
+    name: Create draft prerelease
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download packaged applications
+        uses: actions/download-artifact@v4
+        with:
+          pattern: harbor-beta-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: release-assets
+        run: sha256sum * > SHA256SUMS.txt
+
+      - name: Create draft GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          Harbor beta build.
+
+          Before publishing this draft:
+
+          - Replace the CI-generated, ad-hoc-signed macOS DMG with a Developer
+            ID signed and notarized DMG, then regenerate SHA256SUMS.txt.
+          - Complete the smoke-test checklist in docs/BETA_TESTING.md.
+          - Add user-facing changes and known issues to these notes.
+
+          The Windows installer is intentionally unsigned for the private beta
+          and may show a Microsoft Defender SmartScreen warning.
+          EOF
+
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Harbor ${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md \
+            --draft \
+            --prerelease \
+            release-assets/*
