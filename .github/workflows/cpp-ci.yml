@@ -181,7 +181,19 @@ jobs:
           # resources/dist/README-Linux.txt tells users to install.
           docker run --rm -v "$PWD:/src:ro" ubuntu:24.04 bash -euc '
             apt-get update -qq
-            apt-get install -y -qq libopengl0 libglx0 libegl1 > /dev/null
+
+            # ubuntu:24.04 is a server image with no graphical stack at all,
+            # so it is stricter than any real desktop. Install the libraries
+            # every graphical Linux system already has, so the test only fails
+            # on dependencies a user would genuinely be missing.
+            apt-get install -y -qq \
+              libfontconfig1 libfreetype6 libx11-6 libxcb1 \
+              libxkbcommon0 libglib2.0-0t64 libdbus-1-3 > /dev/null
+
+            # Exactly what resources/dist/README-Linux.txt tells users to
+            # install. Keep these two lists in step.
+            apt-get install -y -qq libgl1 libglx0 libopengl0 libegl1 > /dev/null
+
             cd /tmp
             cp /src/Harbor*.AppImage ./harbor.AppImage
             chmod +x ./harbor.AppImage

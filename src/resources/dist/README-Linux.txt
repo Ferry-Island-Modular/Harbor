@@ -12,7 +12,7 @@ AppImages deliberately do not bundle OpenGL libraries, because those have to
 match the graphics driver already installed on your machine. A stock Ubuntu
 desktop does not always ship them, so install these first:
 
-    sudo apt install libopengl0 libglx0 libegl1
+    sudo apt install libgl1 libglx0 libopengl0 libegl1
 
 Without them Harbor exits immediately with:
 
