@@ -3,7 +3,9 @@
 // ==========================================
 
 // Colors
-$color-black: black;
+// Card surfaces are #111 in the Penpot design, not pure black. No design
+// export uses rgb(0, 0, 0) anywhere.
+$color-near-black: #111;
 $color-dark-bg: #222;
 $color-white: white;
 $color-light-gray: #ddd;
@@ -73,12 +75,42 @@ $border-dashed: 2px dashed $color-grey;
 // Base Styles
 // ==========================================
 
-QApplication {
-    background-color: $color-black;
+// The top-level background must be set on a selector Qt actually matches.
+// Two earlier rules here were silently dead: `QApplication` is not a QWidget
+// (style sheets only apply to widgets), and a bare `MainWindow` never matches
+// fim::ui::MainWindow, because Qt type selectors spell namespaces with `--`
+// rather than `::`. With neither matching, the window inherited the host
+// palette — dark on a dark-mode Mac, light grey under Ubuntu's Yaru theme,
+// which left white title text on a near-white background.
+//
+// `QMainWindow` is used rather than `fim--ui--MainWindow` because type
+// selectors also match subclasses, so it survives a namespace change.
+QMainWindow {
+    background-color: $color-dark-bg;
 }
 
-MainWindow {
+QMenuBar {
     background-color: $color-dark-bg;
+    color: $color-white;
+
+    &::item {
+        background-color: transparent;
+        padding: 4px $spacing-xs;
+
+        &:selected {
+            background-color: $color-grey;
+        }
+    }
+}
+
+QMenu {
+    background-color: $color-dark-bg;
+    color: $color-white;
+    border: 1px solid $color-grey;
+
+    &::item:selected {
+        background-color: $color-grey;
+    }
 }
 
 QLabel {
@@ -184,7 +216,7 @@ QPushButton {
 // ==========================================
 
 #cardButton {
-    background-color: $color-black;
+    background-color: $color-near-black;
     border-radius: $border-radius-base;
     min-height: 172px;
     max-height: 172px;
@@ -253,7 +285,7 @@ QPushButton {
 // ==========================================
 
 #previewControlsWidget {
-    background-color: $color-black;
+    background-color: $color-near-black;
     border-radius: $border-radius-base;
 }
 
@@ -330,7 +362,7 @@ QPushButton {
 }
 
 #anyWavInnerCard {
-    background-color: $color-black;
+    background-color: $color-near-black;
     border-radius: $border-radius-base;
 }
 

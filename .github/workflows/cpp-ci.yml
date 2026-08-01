@@ -137,6 +137,9 @@ jobs:
         working-directory: src
         env:
           APPIMAGE_EXTRACT_AND_RUN: '1'  # CI runners can lack FUSE
+          # linuxdeploy-plugin-qt deploys only platforms/libqxcb.so by default;
+          # without these the AppImage has no Wayland support at all.
+          EXTRA_QT_PLUGINS: 'wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration'
         run: |
           ARCH=$(uname -m)
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage
@@ -153,7 +156,56 @@ jobs:
           Icon=harbor
           Categories=Utility;
           EOF
+          qt_plugins="${QT_ROOT_DIR:-${Qt6_DIR:-}}/plugins"
+          if [ -d "${qt_plugins}/platforms" ]; then
+            mkdir -p AppDir/usr/plugins/platforms
+            find "${qt_plugins}/platforms" -name 'libqwayland*.so' \
+              -exec cp -v {} AppDir/usr/plugins/platforms/ \; || true
+          fi
           ./linuxdeploy-${ARCH}.AppImage --appdir AppDir --plugin qt --output appimage
+          echo "Bundled platform plugins:"
+          ls -1 AppDir/usr/plugins/platforms/
+          if ! ls AppDir/usr/plugins/platforms/ | grep -q '^libqwayland'; then
+            echo "::error::No Wayland platform plugin in the AppImage." >&2
+            exit 1
+          fi
+
+      - name: Smoke-test AppImage on a clean system
+        if: runner.os == 'Linux'
+        working-directory: src
+        run: |
+          set -euo pipefail
+          # This runner has libgl1-mesa-dev installed, which pulls libopengl0
+          # transitively, so launching here proves nothing about a user's
+          # machine. Verify against a bare ubuntu:24.04 with only the packages
+          # resources/dist/README-Linux.txt tells users to install.
+          docker run --rm -v "$PWD:/src:ro" ubuntu:24.04 bash -euc '
+            apt-get update -qq
+
+            # ubuntu:24.04 is a server image with no graphical stack at all,
+            # so it is stricter than any real desktop. Install the libraries
+            # every graphical Linux system already has, so the test only fails
+            # on dependencies a user would genuinely be missing.
+            apt-get install -y -qq \
+              libfontconfig1 libfreetype6 libx11-6 libxcb1 \
+              libxkbcommon0 libglib2.0-0t64 libdbus-1-3 > /dev/null
+
+            # Exactly what resources/dist/README-Linux.txt tells users to
+            # install. Keep these two lists in step.
+            apt-get install -y -qq libgl1 libglx0 libopengl0 libegl1 > /dev/null
+
+            cd /tmp
+            cp /src/Harbor*.AppImage ./harbor.AppImage
+            chmod +x ./harbor.AppImage
+            ./harbor.AppImage --appimage-extract > /dev/null
+            missing="$(ldd squashfs-root/usr/bin/harbor | grep "not found" || true)"
+            if [ -n "$missing" ]; then
+              echo "::error::Undeclared runtime dependencies in the AppImage" >&2
+              echo "$missing" >&2
+              exit 1
+            fi
+            echo "All runtime libraries resolve with only the documented packages installed."
+          '
 
       - name: Upload AppImage (Linux)
         if: runner.os == 'Linux'
