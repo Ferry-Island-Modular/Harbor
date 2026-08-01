@@ -324,6 +324,11 @@ if(WIN32)
         "${CMAKE_CURRENT_BINARY_DIR}/generated/Harbor.rc"
     )
     set_target_properties(fim-config-tool PROPERTIES
+        # Without this the executable links against the console subsystem and
+        # Windows opens a console window alongside the GUI. The macOS branch
+        # below sets MACOSX_BUNDLE for the same reason; there was no Windows
+        # equivalent.
+        WIN32_EXECUTABLE ON
         QT_WINDOWS_APP_PROJECT_IDENTIFIER "com.ferryislandmodular.harbor"
         QT_WINDOWS_APP_PROJECT_EXECUTION_LEVEL "asInvoker"
     )
