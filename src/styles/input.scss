@@ -3,7 +3,9 @@
 // ==========================================
 
 // Colors
-$color-black: black;
+// Card surfaces are #111 in the Penpot design, not pure black. No design
+// export uses rgb(0, 0, 0) anywhere.
+$color-near-black: #111;
 $color-dark-bg: #222;
 $color-white: white;
 $color-light-gray: #ddd;
@@ -214,7 +216,7 @@ QPushButton {
 // ==========================================
 
 #cardButton {
-    background-color: $color-black;
+    background-color: $color-near-black;
     border-radius: $border-radius-base;
     min-height: 172px;
     max-height: 172px;
@@ -283,7 +285,7 @@ QPushButton {
 // ==========================================
 
 #previewControlsWidget {
-    background-color: $color-black;
+    background-color: $color-near-black;
     border-radius: $border-radius-base;
 }
 
@@ -360,7 +362,7 @@ QPushButton {
 }
 
 #anyWavInnerCard {
-    background-color: $color-black;
+    background-color: $color-near-black;
     border-radius: $border-radius-base;
 }
 
