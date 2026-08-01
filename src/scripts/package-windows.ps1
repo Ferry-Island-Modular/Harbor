@@ -81,16 +81,44 @@ if ($LASTEXITCODE -ne 0) {
     throw "windeployqt failed with exit code $LASTEXITCODE"
 }
 
-# windeployqt's runtime deployment has varied across Qt versions, so assert
-# rather than assume. Without these the app dies at startup on a machine that
-# has never had a Visual Studio redistributable installed.
-$RequiredRuntime = @("vcruntime140.dll", "msvcp140.dll")
+# windeployqt only deploys the CRT when the Visual Studio environment is
+# present (VCToolsRedistDir and friends, set by vcvars64.bat). In a plain CI
+# shell those are absent and it skips the runtime silently, reporting success.
+# So verify, and copy the DLLs straight out of the Visual Studio
+# redistributable directory when they are missing.
+#
+# vcruntime140_1.dll matters as much as the other two: x64 C++ exception
+# handling lives there, so omitting it fails at runtime rather than at load.
+$RequiredRuntime = @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")
 $MissingRuntime = $RequiredRuntime | Where-Object {
     -not (Test-Path (Join-Path $StageDir $_))
 }
+
 if ($MissingRuntime) {
+    Write-Host "windeployqt skipped the MSVC runtime; copying it directly."
+    $VsWhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio/Installer/vswhere.exe"
+    if (-not (Test-Path $VsWhere)) {
+        throw "windeployqt did not deploy the MSVC runtime and vswhere.exe was not found to copy it manually."
+    }
+    $VsInstall = (& $VsWhere -latest -products * -property installationPath).Trim()
+    $CrtDir = Get-ChildItem `
+        (Join-Path $VsInstall "VC/Redist/MSVC/*/x64/Microsoft.VC*.CRT") `
+        -Directory -ErrorAction SilentlyContinue |
+        Sort-Object FullName -Descending |
+        Select-Object -First 1
+    if (-not $CrtDir) {
+        throw "No Microsoft.VC*.CRT redistributable directory found under $VsInstall"
+    }
+    Copy-Item (Join-Path $CrtDir.FullName "*.dll") $StageDir -Force
+    Write-Host "Copied MSVC runtime from $($CrtDir.FullName)"
+}
+
+$StillMissing = $RequiredRuntime | Where-Object {
+    -not (Test-Path (Join-Path $StageDir $_))
+}
+if ($StillMissing) {
     throw @"
-windeployqt did not deploy the MSVC runtime: $($MissingRuntime -join ', ').
+The MSVC runtime is still missing after the fallback copy: $($StillMissing -join ', ').
 The package would fail to start on a machine without the Visual C++
 redistributable already installed.
 "@
