@@ -16,6 +16,17 @@ Defender SmartScreen may show "Windows protected your PC":
 3. Confirm the publisher is shown as "Unknown publisher".
 4. Click "Run anyway".
 
+You can then choose where Harbor is installed:
+
+  Anyone who uses this computer   Installs to Program Files for all users.
+                                  Requires administrator rights.
+
+  Only for me                     Installs to %LocalAppData%\Programs\Harbor.
+                                  No administrator rights needed.
+
+If you are signed in as an administrator, Windows shows a User Account Control
+prompt when the installer starts, before you pick a mode. That is expected.
+
 The installer creates Start Menu and optional Desktop shortcuts. Remove Harbor
 later through Windows Settings > Apps > Installed apps.
 
@@ -27,8 +38,8 @@ Extract the entire ZIP to a normal folder before running Harbor.exe. Do not run
 Harbor directly from inside the ZIP, and do not move Harbor.exe away from its
 DLL and plugin folders.
 
-The included Microsoft Visual C++ Redistributable can be found under
-_prerequisites if Windows reports that a runtime DLL is missing.
+The Microsoft Visual C++ runtime ships alongside Harbor.exe, so no separate
+redistributable needs installing.
 
 
 REPORTING BUGS

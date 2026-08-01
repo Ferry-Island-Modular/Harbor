@@ -65,37 +65,68 @@ New-Item -ItemType Directory -Force $StageDir | Out-Null
 New-Item -ItemType Directory -Force $DistDir | Out-Null
 Copy-Item $Executable (Join-Path $StageDir "Harbor.exe")
 
+# --compiler-runtime puts VCRUNTIME140.dll and friends next to Harbor.exe.
+# This replaces shipping vc_redist.x64.exe under _prerequisites: that installs
+# machine-wide and needs elevation, which the per-user installer does not have,
+# so on a clean machine it failed silently and Harbor would not start. An
+# app-local CRT is redistributable and keeps the per-user install UAC-free.
 $WinDeployQt = Get-Command "windeployqt.exe" -ErrorAction Stop
 & $WinDeployQt.Source `
     --release `
     --dir $StageDir `
     --no-translations `
-    --no-compiler-runtime `
+    --compiler-runtime `
     (Join-Path $StageDir "Harbor.exe")
 if ($LASTEXITCODE -ne 0) {
     throw "windeployqt failed with exit code $LASTEXITCODE"
 }
 
+# windeployqt only deploys the CRT when the Visual Studio environment is
+# present (VCToolsRedistDir and friends, set by vcvars64.bat). In a plain CI
+# shell those are absent and it skips the runtime silently, reporting success.
+# So verify, and copy the DLLs straight out of the Visual Studio
+# redistributable directory when they are missing.
+#
+# vcruntime140_1.dll matters as much as the other two: x64 C++ exception
+# handling lives there, so omitting it fails at runtime rather than at load.
+$RequiredRuntime = @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")
+$MissingRuntime = $RequiredRuntime | Where-Object {
+    -not (Test-Path (Join-Path $StageDir $_))
+}
+
+if ($MissingRuntime) {
+    Write-Host "windeployqt skipped the MSVC runtime; copying it directly."
+    $VsWhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio/Installer/vswhere.exe"
+    if (-not (Test-Path $VsWhere)) {
+        throw "windeployqt did not deploy the MSVC runtime and vswhere.exe was not found to copy it manually."
+    }
+    $VsInstall = (& $VsWhere -latest -products * -property installationPath).Trim()
+    $CrtDir = Get-ChildItem `
+        (Join-Path $VsInstall "VC/Redist/MSVC/*/x64/Microsoft.VC*.CRT") `
+        -Directory -ErrorAction SilentlyContinue |
+        Sort-Object FullName -Descending |
+        Select-Object -First 1
+    if (-not $CrtDir) {
+        throw "No Microsoft.VC*.CRT redistributable directory found under $VsInstall"
+    }
+    Copy-Item (Join-Path $CrtDir.FullName "*.dll") $StageDir -Force
+    Write-Host "Copied MSVC runtime from $($CrtDir.FullName)"
+}
+
+$StillMissing = $RequiredRuntime | Where-Object {
+    -not (Test-Path (Join-Path $StageDir $_))
+}
+if ($StillMissing) {
+    throw @"
+The MSVC runtime is still missing after the fallback copy: $($StillMissing -join ', ').
+The package would fail to start on a machine without the Visual C++
+redistributable already installed.
+"@
+}
+
 Copy-Item `
     (Join-Path $RepoRoot "src/resources/dist/README-Windows.txt") `
     (Join-Path $StageDir "README.txt")
-
-$VsWhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio/Installer/vswhere.exe"
-if (-not (Test-Path $VsWhere)) {
-    throw "vswhere.exe was not found; cannot locate the Visual C++ Redistributable"
-}
-$VsInstall = (& $VsWhere -latest -products * -property installationPath).Trim()
-$RedistCandidates = Get-ChildItem `
-    (Join-Path $VsInstall "VC/Redist/MSVC/*/vc_redist.x64.exe") `
-    -ErrorAction SilentlyContinue |
-    Sort-Object FullName -Descending
-$Redistributable = $RedistCandidates | Select-Object -First 1
-if (-not $Redistributable) {
-    throw "vc_redist.x64.exe was not found under $VsInstall"
-}
-$PrerequisiteDir = Join-Path $StageDir "_prerequisites"
-New-Item -ItemType Directory -Force $PrerequisiteDir | Out-Null
-Copy-Item $Redistributable.FullName (Join-Path $PrerequisiteDir "vc_redist.x64.exe")
 
 $PortableZip = Join-Path $DistDir "Harbor-$PackageVersion-windows-x64-portable.zip"
 if (Test-Path $PortableZip) {
