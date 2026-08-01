@@ -166,6 +166,10 @@ jobs:
         working-directory: src
         env:
           APPIMAGE_EXTRACT_AND_RUN: '1'
+          # linuxdeploy-plugin-qt only deploys platforms/libqxcb.so by default.
+          # Without these, Qt logs 'Could not find the Qt platform plugin
+          # "wayland"' and silently falls back to XWayland on Wayland desktops.
+          EXTRA_QT_PLUGINS: 'wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration'
         run: |
           set -euo pipefail
           arch="$(uname -m)"
@@ -187,6 +191,20 @@ jobs:
           Icon=harbor
           Categories=Utility;
           EOF
+
+          # The Wayland platform plugin lives alongside libqxcb.so but is not
+          # in linuxdeploy's default set, so stage it explicitly and let
+          # linuxdeploy resolve its dependencies from the AppDir.
+          qt_plugins="${QT_ROOT_DIR:-${Qt6_DIR:-}}/plugins"
+          if [ -d "${qt_plugins}/platforms" ]; then
+            mkdir -p AppDir/usr/plugins/platforms
+            find "${qt_plugins}/platforms" -name 'libqwayland*.so' \
+              -exec cp -v {} AppDir/usr/plugins/platforms/ \; || true
+          else
+            echo "Qt plugins directory not found at ${qt_plugins}" >&2
+            exit 1
+          fi
+
           ./linuxdeploy-"${arch}".AppImage \
             --appdir AppDir \
             --plugin qt \
@@ -194,6 +212,51 @@ jobs:
           mkdir -p build/release-assets
           mv Harbor*.AppImage \
             "build/release-assets/Harbor-${RELEASE_TAG}-linux-${arch}.AppImage"
+          cp resources/dist/README-Linux.txt build/release-assets/README.txt
+
+      - name: Verify Wayland plugin was bundled
+        if: runner.os == 'Linux'
+        working-directory: src
+        run: |
+          set -euo pipefail
+          echo "Bundled platform plugins:"
+          ls -1 AppDir/usr/plugins/platforms/
+          if ! ls AppDir/usr/plugins/platforms/ | grep -q '^libqwayland'; then
+            echo "::error::No Wayland platform plugin in the AppImage." >&2
+            echo "Qt will fall back to XWayland on Wayland desktops." >&2
+            exit 1
+          fi
+
+      - name: Smoke-test AppImage on a clean system
+        if: runner.os == 'Linux'
+        working-directory: src
+        run: |
+          set -euo pipefail
+          # The build runner has libgl1-mesa-dev/libegl1-mesa-dev installed,
+          # which pull in libopengl0 transitively — so a launch here proves
+          # nothing about a user's machine. Run it in a bare ubuntu:24.04
+          # container with ONLY the packages README-Linux.txt tells users to
+          # install, so the docs are validated along with the binary.
+          docker run --rm \
+            -v "$PWD/build/release-assets:/assets:ro" \
+            ubuntu:24.04 bash -euc '
+              apt-get update -qq
+              apt-get install -y -qq libopengl0 libglx0 libegl1 > /dev/null
+
+              cd /tmp
+              cp /assets/Harbor-*.AppImage ./harbor.AppImage
+              chmod +x ./harbor.AppImage
+              # --appimage-extract avoids needing FUSE inside the container.
+              ./harbor.AppImage --appimage-extract > /dev/null
+
+              missing="$(ldd squashfs-root/usr/bin/harbor | grep "not found" || true)"
+              if [ -n "$missing" ]; then
+                echo "::error::Undeclared runtime dependencies in the AppImage" >&2
+                echo "$missing" >&2
+                exit 1
+              fi
+              echo "All runtime libraries resolve with only the documented packages installed."
+            '
 
       - name: Install NSIS
         if: runner.os == 'Windows'
@@ -221,7 +284,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: src/build/release-assets/Harbor-*.AppImage
+          path: |
+            src/build/release-assets/Harbor-*.AppImage
+            src/build/release-assets/README.txt
           if-no-files-found: error
           retention-days: 30
 
