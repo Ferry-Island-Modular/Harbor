@@ -73,7 +73,14 @@ VIAddVersionKey /LANG=1033 "LegalCopyright" "Ferry Island Modular"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_RUN "$INSTDIR\Harbor.exe"
+; Launch through the finish page's callback rather than naming the exe
+; directly. In all-users mode the installer is elevated, and a directly
+; launched child inherits that token — Windows then blocks drag-and-drop from
+; the user's non-elevated Explorer via UIPI, silently. Confirmed on Windows 11:
+; dropping a .wav did nothing when Harbor was started from the finish page,
+; and worked when started from the Start Menu.
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_FUNCTION LaunchHarborAsUser
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
@@ -85,6 +92,16 @@ VIAddVersionKey /LANG=1033 "LegalCopyright" "Ferry Island Modular"
 ; so the per-user location is byte-for-byte what Harbor used before. The
 ; INSTDIR_REGISTRY defines additionally reuse the directory of an existing
 ; install, read from HKLM or HKCU to match the mode.
+
+; Hand the launch to Explorer, which runs as the logged-in user, so Harbor
+; gets that token instead of the installer's elevated one. NSIS ships no way
+; to drop privileges directly; the alternative is the third-party UAC plugin's
+; ShellExecAsUser. Exec returns as soon as Explorer is spawned, so the "run
+; Harbor" tick box no longer waits on the app — which is fine, nothing depends
+; on it.
+Function LaunchHarborAsUser
+    Exec '"$WINDIR\explorer.exe" "$INSTDIR\Harbor.exe"'
+FunctionEnd
 
 Function .onInit
     !insertmacro MULTIUSER_INIT
