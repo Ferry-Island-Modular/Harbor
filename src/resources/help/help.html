@@ -3,66 +3,105 @@
 <head><title>Harbor Help</title></head>
 <body>
 <h1>Harbor</h1>
-<p><b>Harbor</b> generates wavetable banks for Eurorack hardware (Ferry Island Modular's Four Seas) and other wavetable synth hosts (e.g. Waveedit / Synthesis Technology).</p>
+<p><b>Harbor</b> turns ordinary audio into wavetable banks for Eurorack hardware (Ferry Island Modular's Four Seas) and other wavetable hosts such as Synthesis Technology's Waveedit.</p>
+
+<p>Every bank is an <b>8&nbsp;&times;&nbsp;8&nbsp;&times;&nbsp;8 grid</b>: 8 output files (the Z axis), each holding 64 single-cycle waveforms arranged as an 8&nbsp;&times;&nbsp;8 X/Y plane. On the hardware you sweep those three axes to move through the sounds.</p>
+
+<h2>Getting started</h2>
+<ol>
+<li>Pick a mode from the launcher screen.</li>
+<li>Drop a <code>.wav</code> file onto the drop area, or click it to browse.</li>
+<li>Choose how each axis should behave (see below) &mdash; the defaults are a sensible starting point.</li>
+<li>Click <b>Generate wavetable bank</b>.</li>
+<li>Audition it with the preview, then <b>Export wavetable bank</b> to a folder of your choosing.</li>
+</ol>
 
 <h2>Three modes</h2>
 <dl>
 <dt><b>Use any .wav file</b></dt>
-<dd>Drop in a single audio file. Harbor analyzes it and creates an 8&nbsp;page &times; 64&nbsp;cell wavetable bank by spectrally morphing the source across the X, Y, and Z axes. The Y and Z morph mode selectors control how the spectrum is transformed (see <b>Morph modes</b> below).</dd>
+<dd>Drop in a single ordinary recording &mdash; a voice, a field recording, a synth line, anything. Harbor analyses it and builds the whole grid from that one source. This is the mode with the most controls, and the one to start with.</dd>
 
 <dt><b>Use a Serum .wav file</b></dt>
-<dd>Drop in a Serum-format wavetable (2048 samples per frame, any number of frames). Harbor resamples the frame timeline to 8 pages and applies the same Y/Z morph modes as Any-WAV mode. Serum exports are typically 32-bit float, but Harbor also accepts 16-bit and 24-bit files as long as the total sample count is a multiple of 2048.</dd>
+<dd>Drop in a Serum-format wavetable (2048 samples per frame, any number of frames). Harbor resamples the frame timeline onto the 8 Z pages. Serum exports are usually 32-bit float, but 16-bit and 24-bit files work too, as long as the total sample count is a multiple of 2048.</dd>
 
 <dt><b>Use three .wav files</b></dt>
-<dd>Drop in three audio files, one per axis. Each cell in the 8&times;8&times;8 grid blends the three files' spectra weighted by the cell's position. No morph modes &mdash; all the variety comes from the three source files you pick.</dd>
+<dd>Drop in three recordings, one per slot: <b>Source&nbsp;A</b> is where the X axis starts, <b>Source&nbsp;B</b> is where X ends, and <b>Source&nbsp;C</b> is the Y destination. Each cell blends the three spectra according to its position in the grid.</dd>
 </dl>
 
-<h2>Morph modes</h2>
-<p>The <b>Y axis</b> and <b>Z axis</b> morph modes (available in Any-WAV and Serum modes) control how the source spectrum is transformed as you move along each axis. Each mode is applied independently.</p>
+<h2>Any-WAV controls</h2>
 
-<h3>Y axis modes</h3>
+<h3>Source treatment</h3>
+<p>Decides which part of your recording Harbor draws on, and what the X axis sweeps through.</p>
 <dl>
-<dt><b>Spectral tilt</b> (default)</dt>
-<dd>Tilts the magnitude spectrum, shifting energy between low and high frequencies. At one end the timbre is dark and bass-heavy; at the other it's bright and treble-forward.</dd>
+<dt><b>Focused</b> (default)</dt>
+<dd>Scans spectrally distinct frames from a content-rich region. Harbor finds the most interesting stretch of the file and picks frames that differ from one another, so the X axis moves through genuinely different timbres. Best for most material.</dd>
 
-<dt><b>Formant scale</b></dt>
-<dd>Stretches or compresses the spectral envelope (the formant structure) without changing the fundamental pitch. Creates vowel-like or resonant-body shifts.</dd>
-
-<dt><b>Harmonic stretch</b></dt>
-<dd>Stretches the spacing between harmonics. Low values keep harmonics at their natural integer ratios (1x, 2x, 3x&hellip;); high values push them apart into inharmonic, metallic, bell-like territory.</dd>
-
-<dt><b>Spectral smear</b></dt>
-<dd>Blurs the magnitude spectrum by averaging neighboring bins. Low values leave the spectrum sharp; high values diffuse it into a washed-out, pad-like timbre.</dd>
+<dt><b>Legacy stretch</b></dt>
+<dd>Scans the full source while stretching its spectrum. Uses the whole file end to end rather than choosing a region. Useful when the entire recording matters, or to reproduce results from earlier versions of the tool.</dd>
 </dl>
 
-<h3>Z axis modes</h3>
+<h3>Y axis</h3>
+<p>Reshapes the spectrum as you move up the Y axis.</p>
 <dl>
-<dt><b>Random phase</b> (default)</dt>
-<dd>Randomizes the phase of each spectral bin. Preserves the magnitude spectrum (same perceived brightness) but changes the waveform shape, producing a different texture on each Z page.</dd>
+<dt><b>Tilt</b> (default)</dt>
+<dd>Shifts energy between low and high frequencies. One end is dark and bass-heavy, the other bright and treble-forward.</dd>
 
-<dt><b>Phase disperse</b></dt>
-<dd>Applies a frequency-dependent phase shift that spreads energy across the cycle. Creates a progressively more diffuse, chorus-like character as the Z value increases.</dd>
+<dt><b>Formant</b></dt>
+<dd>Stretches or compresses the spectral envelope without changing the pitch. Produces vowel-like and resonant-body shifts.</dd>
 
-<dt><b>Bit crush</b></dt>
-<dd>Quantizes the waveform amplitude to fewer levels, introducing digital distortion and aliasing artifacts. Extreme at high values &mdash; Eurorack users have attenuators.</dd>
+<dt><b>Stretch</b></dt>
+<dd>Widens the spacing between harmonics. Low values keep natural whole-number ratios; high values push them apart into inharmonic, metallic, bell-like territory.</dd>
+
+<dt><b>Smear</b></dt>
+<dd>Blurs the spectrum by averaging neighbouring frequencies. Sharp at low values, washed-out and pad-like at high values.</dd>
 </dl>
 
-<h2>Output directory</h2>
-<p>Use <b>File &gt; Choose output directory&hellip;</b> to pick where Harbor saves the generated banks. By default they go to <code>~/Documents/Harbor/</code>, organized into per-mode subdirectories.</p>
+<h3>Z axis</h3>
+<p>Changes the texture across the 8 output pages.</p>
+<dl>
+<dt><b>Random</b> (default)</dt>
+<dd>Randomises the phase of each frequency. Brightness stays the same but the waveform shape changes, giving each page its own character.</dd>
 
-<h2>Target hardware</h2>
-<p>Use <b>Export &gt; Target hardware</b> to choose between:</p>
-<ul>
-<li><b>Four Seas (2048 samples per cycle)</b> &mdash; the default. Compatible with Ferry Island Modular's Four Seas oscillator.</li>
-<li><b>Waveedit (256 samples per cycle)</b> &mdash; compatible with Synthesis Technology's Waveedit and other 256-sample wavetable hosts.</li>
-</ul>
-<p>The preview always plays the 2048-sample version regardless of which target you've selected.</p>
+<dt><b>Disperse</b></dt>
+<dd>Smears energy across the cycle by frequency. Grows progressively more diffuse and chorus-like as Z increases.</dd>
+
+<dt><b>Crush</b></dt>
+<dd>Quantises the waveform to fewer amplitude levels for digital distortion and aliasing. Deliberately extreme at the top end &mdash; use your module's attenuators.</dd>
+</dl>
+
+<h2>Serum controls</h2>
+<p>Serum mode offers a different set of transforms from Any-WAV mode, because the source is already a wavetable.</p>
+<dl>
+<dt><b>Y axis &mdash; spectral colour</b></dt>
+<dd><b>Formant</b> (default) shifts the spectral envelope; <b>Smear</b> blurs the spectrum; <b>Stretch</b> widens harmonic spacing.</dd>
+
+<dt><b>Z axis &mdash; texture</b></dt>
+<dd><b>Odd / even</b> (default) rebalances odd against even harmonics, moving between hollow and full; <b>Phase motion</b> shifts phase progressively across pages; <b>Crush</b> quantises amplitude for digital grit.</dd>
+</dl>
+
+<h2>Three-WAV controls</h2>
+<dl>
+<dt><b>Z axis &mdash; texture</b></dt>
+<dd><b>Phase motion</b> (default), <b>Odd / even</b>, <b>Crush</b>, and <b>Harmonic comb</b>, which notches out regularly spaced harmonics for a hollow, phasey character. The X and Y axes are set by the three source files rather than by a mode.</dd>
+</dl>
 
 <h2>Preview</h2>
-<p>After Generate finishes, the preview panel appears with X, Y, Z, Pitch, and Volume sliders. Click <b>Play steady tone</b> to audition the bank. Drag the sliders to scan through the wavetable grid.</p>
+<p>Once generation finishes, the preview panel appears with X, Y, Z, Pitch and Volume sliders. Click <b>Play steady tone</b> to hear the bank and drag the sliders to move through the grid; the button becomes <b>Stop</b> while it plays. The preview always sounds the 2048-sample version, whichever export target you have selected.</p>
+
+<h2>Output directory</h2>
+<p>Banks are saved to <code>~/Documents/Harbor/</code> by default. Change it with <b>File&nbsp;&gt;&nbsp;Choose output directory&hellip;</b>. Each generated bank is eight numbered <code>.wav</code> files, one per Z page.</p>
+
+<h2>Target hardware</h2>
+<p>Choose under <b>Export&nbsp;&gt;&nbsp;Target hardware</b>:</p>
+<ul>
+<li><b>Four Seas (2048 samples per cycle)</b> &mdash; the default, for Ferry Island Modular's Four Seas.</li>
+<li><b>Waveedit (256 samples per cycle)</b> &mdash; for Synthesis Technology's Waveedit and other 256-sample hosts.</li>
+</ul>
+<p>Set this before exporting. It changes the files written to disk, not the preview.</p>
 
 <h2>Reporting bugs</h2>
-<p>Harbor is in beta. Please report issues on the project's GitHub issue tracker.</p>
+<p>Harbor is in beta, so please do report anything odd &mdash; including things that look wrong rather than crash.</p>
+<p>Issues go to <a href="https://github.com/Ferry-Island-Modular/Harbor/issues/new/choose">github.com/Ferry-Island-Modular/Harbor/issues</a>. Helpful to include: your Harbor version from <b>Help&nbsp;&gt;&nbsp;About Harbor</b>, your operating system, which mode and axis options you used, and what you expected to happen instead.</p>
 
 </body>
 </html>
