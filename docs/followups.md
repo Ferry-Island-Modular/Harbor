@@ -15,7 +15,13 @@ Things noticed during implementation that aren't blocking but should be revisite
 
 ## Phase 5
 
-- **Help dialog content needs review.** `cpp/resources/help/help.html` was written from a developer's mental model. After the first round of beta testers, rewrite based on the questions they actually ask. May want to add screenshots once styling is finalized.
+- ~~**Help dialog content needs review.**~~ Rewritten in `src/resources/help/help.html`
+  against the option labels the UI actually renders. The old text had drifted
+  badly: it used names no longer in the UI (Spectral tilt, Bit crush), never
+  mentioned Source treatment, claimed Serum mode shared Any-WAV's morph modes
+  when it has its own set, and claimed Three-WAV mode had no morph modes when
+  it has a four-option Z axis. Still worth adding screenshots once styling is
+  finalized, and revisiting after testers ask real questions.
 - **AboutDialog version string is hardcoded to "(beta)".** Once we cut a non-beta release, drop the suffix and pull the channel from a CMake option (e.g. `-DHARBOR_RELEASE_CHANNEL=stable`).
 - ~~**`package-macos.sh` contaminates the dev .app bundle.**~~ Fixed: the
   packaging script now runs `macdeployqt` against a temporary staging copy and
