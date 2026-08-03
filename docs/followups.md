@@ -11,7 +11,24 @@ Things noticed during implementation that aren't blocking but should be revisite
 - **`SingleWavService` does not validate the input file.** It accepts any path and passes it straight to `SingleWavGenerator`, which may fail if the file is not a supported WAV. Add explicit validation with a user-friendly error.
 - **`SingleWavService::Generate()` is not cancellable.** Real DSP generation can take several seconds on a slow machine — add a `Cancel()` slot, an atomic `cancel_requested_` flag checked between pages, and a UI button to trigger it.
 - **`engine_->LoadBank()` runs on the GUI thread.** Currently called from `AnyWavScreen::SetState(kDonePreviewAvailable)` after generation finishes. Fast for typical banks (~2MB total) — move to a `QRunnable` only if it ever stalls the UI noticeably.
-- **Styling needs a full design pass.** Phase 5 addressed the worst offenders (equal-width columns, min window size, three-wav column layout) but the QSS port is still visually rough compared to the Penpot SVGs — paddings, spacings, color choices, font sizes all need iterative tuning against `designs/`.
+- **Styling design pass — mostly done (2026-08), a few deliberate deviations remain.**
+  A full pass against the April `designs/` exports brought spacing rhythm
+  (8/16/24/32), card sections, fonts, and colors in line with the mockups:
+  content now lives in #111 rounded cards, the axis selectors use the design's
+  X | Y | Z columns, Clear/browse are accent text links, the progress row and
+  preview sliders match the design, and the window default/min sizes grew to
+  fit (1100×700 / 1080×660). Known deviations kept on purpose: pill-style
+  option buttons instead of the design's radio circles (pills already handle
+  the Windows-metrics problem), filled #111 preview card instead of the
+  outlined panel, vertical preview sliders instead of the design's grid, and
+  Inter instead of the design's Pangram (Inter is the bundled app font).
+  Verified against live Penpot, not just the SVG exports. The app matches the
+  design generation those April exports came from, which is still the latest
+  *finished* one in the file. It is deliberately behind the WIP redesign in
+  Penpot — product hub, breadcrumbs, outlined panels, radius-8 buttons — which
+  we are holding off on until that settles. Features the design never covered
+  (Source-treatment selector, volume slider, three-wav screen) were styled in
+  the same visual language.
 
 ## Phase 5
 

@@ -1,17 +1,18 @@
 #include "ui/widgets/custom_progress_bar.h"
 
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QProgressBar>
-#include <QVBoxLayout>
 
 namespace fim::ui {
 
 CustomProgressBar::CustomProgressBar(QWidget* parent) : QFrame(parent) {
     setObjectName("customProgressBar");
 
-    auto* layout = new QVBoxLayout(this);
+    // Design: label and bar share one row, bar filling the remaining width.
+    auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(8);
+    layout->setSpacing(16);
 
     label_ = new QLabel("Generating wavetable bank…", this);
     label_->setObjectName("customProgressLabel");
@@ -22,7 +23,7 @@ CustomProgressBar::CustomProgressBar(QWidget* parent) : QFrame(parent) {
     progress_bar_->setRange(0, 100);
     progress_bar_->setValue(0);
     progress_bar_->setTextVisible(false);
-    layout->addWidget(progress_bar_);
+    layout->addWidget(progress_bar_, /*stretch=*/1);
 }
 
 void CustomProgressBar::SetLabel(const QString& text) {

@@ -11,9 +11,11 @@ namespace fim::ui {
 LauncherScreen::LauncherScreen(QWidget* parent) : QWidget(parent) {
     setObjectName("launcherScreen");
 
+    // Design rhythm: 8px title→subtitle, 32px subtitle→cards (base spacing
+    // plus the explicit addSpacing below).
     auto* root_layout = new QVBoxLayout(this);
     root_layout->setContentsMargins(32, 32, 32, 32);
-    root_layout->setSpacing(16);
+    root_layout->setSpacing(8);
 
     auto* title = new QLabel("Create your own wavetables for Four Seas", this);
     title->setObjectName("launcherTitle");
@@ -26,6 +28,8 @@ LauncherScreen::LauncherScreen(QWidget* parent) : QWidget(parent) {
     subtitle->setObjectName("launcherSubtitle");
     subtitle->setWordWrap(true);
     root_layout->addWidget(subtitle);
+
+    root_layout->addSpacing(24);
 
     auto* cards_row = new QHBoxLayout();
     cards_row->setSpacing(16);

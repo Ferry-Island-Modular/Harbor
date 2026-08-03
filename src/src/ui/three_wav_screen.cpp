@@ -104,7 +104,11 @@ QWidget* ThreeWavScreen::BuildFileSetPageContent(QWidget* parent) {
     // 3 file slots in a horizontal row, one column per axis. Each
     // column has its own title, filename label + clear button row, and
     // drop widget. Stretch=1 on each column gives them equal width.
-    auto* columns_row = new QHBoxLayout();
+    // The whole row lives in its own card section, like the single-file
+    // modes' filename card.
+    auto* columns_widget = new QWidget(content);
+    auto* columns_row = new QHBoxLayout(columns_widget);
+    columns_row->setContentsMargins(0, 0, 0, 0);
     columns_row->setSpacing(16);
 
     static const QStringList kSlotTitles{"Source A — X start", "Source B — X end",
@@ -124,6 +128,7 @@ QWidget* ThreeWavScreen::BuildFileSetPageContent(QWidget* parent) {
         filename_labels_[i]->setObjectName("anyWavFilename");
         auto* clear_button = new QPushButton("Clear", column);
         clear_button->setObjectName("clearButton");
+        clear_button->setCursor(Qt::PointingHandCursor);
         file_row->addWidget(filename_labels_[i], /*stretch=*/1);
         file_row->addWidget(clear_button);
         column_layout->addLayout(file_row);
@@ -137,22 +142,25 @@ QWidget* ThreeWavScreen::BuildFileSetPageContent(QWidget* parent) {
         columns_row->addWidget(column, /*stretch=*/1);
     }
 
-    layout->addLayout(columns_row, /*stretch=*/1);
+    layout->addWidget(MakeSectionCard(columns_widget, content), /*stretch=*/1);
 
     const QStringList z_options{"Phase motion", "Odd / even", "Crush", "Harmonic comb"};
     z_selector_ = new AxisMorphSelector("Z axis — texture", z_options, content);
     z_selector_->SetCurrentIndex(ValidZModeIndex(settings()->ThreeWavZMorph()));
-    layout->addWidget(z_selector_);
+    layout->addWidget(MakeSectionCard(z_selector_, content));
     connect(z_selector_, &AxisMorphSelector::currentIndexChanged, this,
             &ThreeWavScreen::OnZModeChanged);
 
-    auto* generate_row = new QHBoxLayout();
-    generate_button_ = new QPushButton("Generate wavetable bank", content);
+    // Action section — the design anchors the Generate button left.
+    auto* action_widget = new QWidget(content);
+    auto* generate_row = new QHBoxLayout(action_widget);
+    generate_row->setContentsMargins(0, 0, 0, 0);
+    generate_button_ = new QPushButton("Generate wavetable bank", action_widget);
     generate_button_->setObjectName("generateButton");
     generate_button_->setEnabled(false);
-    generate_row->addStretch();
     generate_row->addWidget(generate_button_);
-    layout->addLayout(generate_row);
+    generate_row->addStretch();
+    layout->addWidget(MakeSectionCard(action_widget, content));
     connect(generate_button_, &QPushButton::clicked, this, [this]() { OnGenerateClicked(); });
 
     return content;

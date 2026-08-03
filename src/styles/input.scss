@@ -12,6 +12,9 @@ $color-light-gray: #ddd;
 $color-grey: #555;
 $color-grey-translucent: rgba(221, 221, 221, 0.5);
 $color-accent: #d6a62c;
+// "Done!" flash in the generation progress row (rgb(32, 185, 0) in the
+// Penpot exports).
+$color-success: #20b900;
 
 // Typography
 $font-family: "Inter";
@@ -193,11 +196,6 @@ QLabel {
 QPushButton {
     @include button-base;
 
-    &#clearButton {
-        border: none;
-        color: $color-white;
-    }
-
     &:checked {
         color: $color-white;
         background-color: $color-accent;
@@ -298,14 +296,38 @@ QPushButton {
     color: $color-white;
     font-family: $font-family;
     font-weight: $font-weight-bold;
-    font-size: $font-size-base;
+    font-size: $font-size-lg;
 }
 
 #previewSliderLabel {
     color: $color-white;
     font-family: $font-family;
-    font-weight: $font-weight-normal;
-    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+}
+
+// The design draws sliders as a 2px grey rail with a 24px round gold knob;
+// the platform-default QSlider looks foreign inside the dark card.
+#previewControlsWidget {
+    QSlider {
+        min-height: 24px;
+
+        &::groove:horizontal {
+            height: 2px;
+            background-color: $color-grey;
+            border: none;
+        }
+
+        &::handle:horizontal {
+            width: 24px;
+            height: 24px;
+            // Center the tall handle on the 2px groove.
+            margin: -11px 0;
+            border-radius: 12px;
+            background-color: $color-accent;
+            border: none;
+        }
+    }
 }
 
 #previewPlayButton {
@@ -378,15 +400,16 @@ QPushButton {
     font-size: $font-size-base;
 }
 
+// Borderless accent text button, mirroring #backButton — the design shows
+// "Clear" as plain gold text inside the file card, not a grey pill.
 #clearButton {
-    background-color: $color-grey;
-    color: $color-white;
+    background: transparent;
+    color: $color-accent;
     font-family: $font-family;
     font-weight: $font-weight-bold;
-    font-size: $font-size-xs;
+    font-size: $font-size-base;
     border: none;
-    border-radius: 4px;
-    padding: 6px 14px;
+    padding: 0;
 }
 
 #anyWavAxisLabel {
@@ -415,8 +438,8 @@ QPushButton {
 }
 
 #anyWavDoneMessage {
-    color: $color-accent;
+    color: $color-success;
     font-family: $font-family;
     font-weight: $font-weight-bold;
-    font-size: $font-size-lg;
+    font-size: $font-size-base;
 }

@@ -111,35 +111,53 @@ QWidget* SerumWavScreen::BuildFileSetPageContent(QWidget* parent) {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(16);
 
+    // Axis section — the design's X | Y | Z columns in one card.
+    auto* axes_widget = new QWidget(content);
+    auto* columns_row = new QHBoxLayout(axes_widget);
+    columns_row->setContentsMargins(0, 0, 0, 0);
+    columns_row->setSpacing(24);
+
     // X axis (fixed descriptor — Serum's X scans the frames, not time).
-    auto* x_label = new QLabel("X axis", content);
+    auto* x_column = new QWidget(axes_widget);
+    auto* x_block = new QVBoxLayout(x_column);
+    x_block->setContentsMargins(0, 0, 0, 0);
+    x_block->setSpacing(8);
+    auto* x_label = new QLabel("X axis", x_column);
     x_label->setObjectName("anyWavAxisLabel");
-    layout->addWidget(x_label);
-    auto* x_descriptor = new QLabel("Scans the wavetable frames", content);
+    x_block->addWidget(x_label);
+    auto* x_descriptor = new QLabel("Scans the wavetable frames", x_column);
     x_descriptor->setObjectName("anyWavAxisDescriptor");
-    layout->addWidget(x_descriptor);
+    x_descriptor->setWordWrap(true);
+    x_block->addWidget(x_descriptor);
+    x_block->addStretch();
+    columns_row->addWidget(x_column, /*stretch=*/1);
 
     const QStringList y_options{"Formant", "Smear", "Stretch"};
     const QStringList z_options{"Odd / even", "Phase motion", "Crush"};
 
-    y_selector_ = new AxisMorphSelector("Y axis — spectral color", y_options, content);
+    y_selector_ = new AxisMorphSelector("Y axis — spectral color", y_options, axes_widget);
     y_selector_->SetCurrentIndex(ValidModeIndex(settings()->SerumYMorph()));
-    layout->addWidget(y_selector_);
+    columns_row->addWidget(y_selector_, /*stretch=*/1, Qt::AlignTop);
     connect(y_selector_, &AxisMorphSelector::currentIndexChanged, this,
             &SerumWavScreen::OnYModeChanged);
 
-    z_selector_ = new AxisMorphSelector("Z axis — texture", z_options, content);
+    z_selector_ = new AxisMorphSelector("Z axis — texture", z_options, axes_widget);
     z_selector_->SetCurrentIndex(ValidModeIndex(settings()->SerumZMorph()));
-    layout->addWidget(z_selector_);
+    columns_row->addWidget(z_selector_, /*stretch=*/1, Qt::AlignTop);
     connect(z_selector_, &AxisMorphSelector::currentIndexChanged, this,
             &SerumWavScreen::OnZModeChanged);
 
-    auto* generate_row = new QHBoxLayout();
-    auto* generate_button = new QPushButton("Generate wavetable bank", content);
+    layout->addWidget(MakeSectionCard(axes_widget, content));
+
+    // Action section — the design anchors the Generate button left.
+    auto* action_widget = new QWidget(content);
+    auto* generate_row = new QHBoxLayout(action_widget);
+    generate_row->setContentsMargins(0, 0, 0, 0);
+    auto* generate_button = new QPushButton("Generate wavetable bank", action_widget);
     generate_button->setObjectName("generateButton");
-    generate_row->addStretch();
     generate_row->addWidget(generate_button);
-    layout->addLayout(generate_row);
+    generate_row->addStretch();
+    layout->addWidget(MakeSectionCard(action_widget, content));
     connect(generate_button, &QPushButton::clicked, this, [this]() { OnGenerateClicked(); });
 
     return content;

@@ -13,8 +13,10 @@ AxisMorphSelector::AxisMorphSelector(const QString& title, const QStringList& op
     : QFrame(parent) {
     setObjectName("axisMorphSelector");
 
+    // No internal margins — the selector sits inside a 32px-padded card
+    // section, and its title must left-align with sibling labels.
     auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(16, 12, 16, 12);
+    layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(8);
 
     auto* title_label = new QLabel(title, this);

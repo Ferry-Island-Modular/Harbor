@@ -121,6 +121,11 @@ protected:
     // since it doesn't use the kEmpty state at all).
     void SetState(State state);
 
+    // Wraps `content` in a rounded #111 card frame (the anyWavInnerCard
+    // style) with the design's 32px padding. The design places every
+    // content block on the mode pages inside one of these sections.
+    static QWidget* MakeSectionCard(QWidget* content, QWidget* parent);
+
     // Whether the file-set page should show the default "single filename
     // label + clear button" row above the subclass content. Single-file
     // modes (any-wav, Serum) return true (default). Multi-file modes
