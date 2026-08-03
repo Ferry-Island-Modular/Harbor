@@ -21,7 +21,12 @@ FileDropWidget::FileDropWidget(QWidget* parent) : QFrame(parent) {
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    label_ = new QLabel("Drop or <a href=\"#browse\">browse</a> for your audio file", this);
+    // Inline style — the design colors "browse" in the accent gold with no
+    // underline, and QSS cannot reach into rich-text links.
+    label_ = new QLabel(
+        "Drop or <a href=\"#browse\" style=\"color: #d6a62c; text-decoration: none;\">browse</a> "
+        "for your audio file",
+        this);
     label_->setObjectName("fileDropLabel");
     label_->setAlignment(Qt::AlignCenter);
     label_->setTextFormat(Qt::RichText);

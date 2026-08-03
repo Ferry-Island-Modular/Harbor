@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
@@ -100,11 +101,22 @@ QPushButton* ModeScreenBase::MakeBackButton(QWidget* parent) {
     return button;
 }
 
+QWidget* ModeScreenBase::MakeSectionCard(QWidget* content, QWidget* parent) {
+    auto* card = new QFrame(parent);
+    card->setObjectName("anyWavInnerCard");
+    auto* card_layout = new QVBoxLayout(card);
+    card_layout->setContentsMargins(32, 32, 32, 32);
+    card_layout->addWidget(content);
+    return card;
+}
+
 QWidget* ModeScreenBase::BuildEmptyPage() {
     auto* page = new QWidget();
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(16);
+    // Design rhythm: 8px back→title, 32px title→content (8px base spacing
+    // plus the explicit addSpacing).
+    layout->setSpacing(8);
 
     auto* back = MakeBackButton(page);
     connect(back, &QPushButton::clicked, this, &ModeScreenBase::backRequested);
@@ -113,6 +125,7 @@ QWidget* ModeScreenBase::BuildEmptyPage() {
     auto* title = new QLabel(ModeTitle(), page);
     title->setObjectName("anyWavTitle");
     layout->addWidget(title);
+    layout->addSpacing(24);
 
     layout->addWidget(BuildEmptyPageContent(page));
     layout->addStretch();
@@ -123,7 +136,7 @@ QWidget* ModeScreenBase::BuildFileSetPage() {
     auto* page = new QWidget();
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(16);
+    layout->setSpacing(8);
 
     auto* back = MakeBackButton(page);
     connect(back, &QPushButton::clicked, this, &ModeScreenBase::backRequested);
@@ -132,19 +145,25 @@ QWidget* ModeScreenBase::BuildFileSetPage() {
     auto* title = new QLabel(ModeTitle(), page);
     title->setObjectName("anyWavTitle");
     layout->addWidget(title);
+    layout->addSpacing(24);
 
     // Filename row — shared between single-file modes. Three-wav and
     // other multi-file modes override ShowDefaultFilenameRow() to skip.
+    // The design shows it inside its own card section.
     if (ShowDefaultFilenameRow()) {
-        auto* file_row = new QHBoxLayout();
-        filename_label_ = new QLabel("(no file)", page);
+        auto* file_widget = new QWidget(page);
+        auto* file_row = new QHBoxLayout(file_widget);
+        file_row->setContentsMargins(0, 0, 0, 0);
+        filename_label_ = new QLabel("(no file)", file_widget);
         filename_label_->setObjectName("anyWavFilename");
-        auto* clear_button = new QPushButton("Clear", page);
+        auto* clear_button = new QPushButton("Clear", file_widget);
         clear_button->setObjectName("clearButton");
+        clear_button->setCursor(Qt::PointingHandCursor);
         file_row->addWidget(filename_label_);
         file_row->addStretch();
         file_row->addWidget(clear_button);
-        layout->addLayout(file_row);
+        layout->addWidget(MakeSectionCard(file_widget, page));
+        layout->addSpacing(8);
         connect(clear_button, &QPushButton::clicked, this, &ModeScreenBase::OnClearClicked);
     }
 
@@ -157,7 +176,7 @@ QWidget* ModeScreenBase::BuildGeneratingPage() {
     auto* page = new QWidget();
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(16);
+    layout->setSpacing(8);
 
     auto* back = MakeBackButton(page);
     connect(back, &QPushButton::clicked, this, &ModeScreenBase::backRequested);
@@ -166,9 +185,10 @@ QWidget* ModeScreenBase::BuildGeneratingPage() {
     auto* title = new QLabel(ModeTitle(), page);
     title->setObjectName("anyWavTitle");
     layout->addWidget(title);
+    layout->addSpacing(24);
 
     progress_bar_ = new CustomProgressBar(page);
-    layout->addWidget(progress_bar_);
+    layout->addWidget(MakeSectionCard(progress_bar_, page));
 
     layout->addStretch();
     return page;
@@ -178,7 +198,7 @@ QWidget* ModeScreenBase::BuildDonePage(bool with_preview) {
     auto* page = new QWidget();
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(16);
+    layout->setSpacing(8);
 
     auto* back = MakeBackButton(page);
     connect(back, &QPushButton::clicked, this, &ModeScreenBase::backRequested);
@@ -187,21 +207,27 @@ QWidget* ModeScreenBase::BuildDonePage(bool with_preview) {
     auto* title = new QLabel(ModeTitle(), page);
     title->setObjectName("anyWavTitle");
     layout->addWidget(title);
+    layout->addSpacing(24);
 
     if (!with_preview) {
         auto* done_label = new QLabel("Done!", page);
         done_label->setObjectName("anyWavDoneMessage");
-        layout->addWidget(done_label);
+        layout->addWidget(MakeSectionCard(done_label, page));
     } else {
-        auto* button_row = new QHBoxLayout();
-        auto* generate_button = new QPushButton("Generate wavetable bank", page);
+        // Design: Generate anchored left, Export anchored right, in their
+        // own card section above the preview.
+        auto* button_widget = new QWidget(page);
+        auto* button_row = new QHBoxLayout(button_widget);
+        button_row->setContentsMargins(0, 0, 0, 0);
+        auto* generate_button = new QPushButton("Generate wavetable bank", button_widget);
         generate_button->setObjectName("generateButton");
-        auto* export_button = new QPushButton("Export wavetable bank", page);
+        auto* export_button = new QPushButton("Export wavetable bank", button_widget);
         export_button->setObjectName("exportButton");
         button_row->addWidget(generate_button);
-        button_row->addWidget(export_button);
         button_row->addStretch();
-        layout->addLayout(button_row);
+        button_row->addWidget(export_button);
+        layout->addWidget(MakeSectionCard(button_widget, page));
+        layout->addSpacing(8);
         connect(generate_button, &QPushButton::clicked, this, &ModeScreenBase::OnGenerateClicked);
         connect(export_button, &QPushButton::clicked, this, &ModeScreenBase::OnExportClicked);
 

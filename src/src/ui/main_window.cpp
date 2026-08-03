@@ -20,8 +20,10 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent),
       engine_(std::make_unique<fim::engine::RealtimeAudioEngine>(48000.0f, 512)) {
     setWindowTitle("Harbor (beta v" HARBOR_VERSION ")");
-    resize(1100, 560);
-    setMinimumSize(960, 520);
+    // Tall enough for the file-set pages' stacked card sections; wide
+    // enough that the axis pill columns never clip at minimum size.
+    resize(1100, 700);
+    setMinimumSize(1080, 660);
 
     stack_ = new QStackedWidget(this);
 

@@ -112,44 +112,66 @@ QWidget* AnyWavScreen::BuildFileSetPageContent(QWidget* parent) {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(16);
 
+    // Axis section — source treatment row, then the design's X | Y | Z
+    // columns. Columns keep the card compact enough for the min window.
+    auto* axes_widget = new QWidget(content);
+    auto* axes_layout = new QVBoxLayout(axes_widget);
+    axes_layout->setContentsMargins(0, 0, 0, 0);
+    axes_layout->setSpacing(16);
+
     const QStringList source_options{"Focused", "Legacy stretch"};
-    source_selector_ = new AxisMorphSelector("Source treatment", source_options, content);
+    source_selector_ = new AxisMorphSelector("Source treatment", source_options, axes_widget);
     source_selector_->SetCurrentIndex(settings()->AnyWavSourceMode());
-    layout->addWidget(source_selector_);
+    axes_layout->addWidget(source_selector_);
     connect(source_selector_, &AxisMorphSelector::currentIndexChanged, this,
             &AnyWavScreen::OnSourceModeChanged);
 
+    auto* columns_row = new QHBoxLayout();
+    columns_row->setSpacing(24);
+
     // X-axis behavior follows the selected source treatment.
-    auto* x_label = new QLabel("X axis", content);
+    auto* x_column = new QWidget(axes_widget);
+    auto* x_block = new QVBoxLayout(x_column);
+    x_block->setContentsMargins(0, 0, 0, 0);
+    x_block->setSpacing(8);
+    auto* x_label = new QLabel("X axis", x_column);
     x_label->setObjectName("anyWavAxisLabel");
-    layout->addWidget(x_label);
-    x_descriptor_ = new QLabel(SourceModeDescription(settings()->AnyWavSourceMode()), content);
+    x_block->addWidget(x_label);
+    x_descriptor_ = new QLabel(SourceModeDescription(settings()->AnyWavSourceMode()), x_column);
     x_descriptor_->setObjectName("anyWavAxisDescriptor");
     x_descriptor_->setWordWrap(true);
-    layout->addWidget(x_descriptor_);
+    x_block->addWidget(x_descriptor_);
+    x_block->addStretch();
+    columns_row->addWidget(x_column, /*stretch=*/1);
 
     // Y axis selector with 4 morph modes.
     const QStringList y_options{"Tilt", "Formant", "Stretch", "Smear"};
-    y_selector_ = new AxisMorphSelector("Y axis", y_options, content);
+    y_selector_ = new AxisMorphSelector("Y axis", y_options, axes_widget);
     y_selector_->SetCurrentIndex(settings()->YMorph());
-    layout->addWidget(y_selector_);
+    columns_row->addWidget(y_selector_, /*stretch=*/1, Qt::AlignTop);
     connect(y_selector_, &AxisMorphSelector::currentIndexChanged, this,
             &AnyWavScreen::OnYModeChanged);
 
     // Z axis selector with 3 morph modes.
     const QStringList z_options{"Random", "Disperse", "Crush"};
-    z_selector_ = new AxisMorphSelector("Z axis", z_options, content);
+    z_selector_ = new AxisMorphSelector("Z axis", z_options, axes_widget);
     z_selector_->SetCurrentIndex(settings()->ZMorph());
-    layout->addWidget(z_selector_);
+    columns_row->addWidget(z_selector_, /*stretch=*/1, Qt::AlignTop);
     connect(z_selector_, &AxisMorphSelector::currentIndexChanged, this,
             &AnyWavScreen::OnZModeChanged);
 
-    auto* generate_row = new QHBoxLayout();
-    auto* generate_button = new QPushButton("Generate wavetable bank", content);
+    axes_layout->addLayout(columns_row);
+    layout->addWidget(MakeSectionCard(axes_widget, content));
+
+    // Action section — the design anchors the Generate button left.
+    auto* action_widget = new QWidget(content);
+    auto* generate_row = new QHBoxLayout(action_widget);
+    generate_row->setContentsMargins(0, 0, 0, 0);
+    auto* generate_button = new QPushButton("Generate wavetable bank", action_widget);
     generate_button->setObjectName("generateButton");
-    generate_row->addStretch();
     generate_row->addWidget(generate_button);
-    layout->addLayout(generate_row);
+    generate_row->addStretch();
+    layout->addWidget(MakeSectionCard(action_widget, content));
     connect(generate_button, &QPushButton::clicked, this, [this]() { OnGenerateClicked(); });
 
     return content;
