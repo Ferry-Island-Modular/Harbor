@@ -28,10 +28,20 @@ AxisMorphSelector::AxisMorphSelector(const QString& title, const QStringList& op
     button_group_ = new QButtonGroup(this);
     button_group_->setExclusive(true);
 
+    // A style sheet min-height does not reliably feed back into a widget's
+    // sizeHint, so the layout allocated the smaller hinted height and Windows
+    // clipped the bottom of each pill — rounded corners and all. Setting the
+    // minimum here is what the layout actually honours.
+    //
+    // Keep in step with #axisMorphOption in styles/input.scss: 18px content
+    // plus 6px padding top and bottom.
+    constexpr int kOptionMinHeight = 30;
+
     for (int i = 0; i < options.size(); ++i) {
         auto* button = new QPushButton(options[i], this);
         button->setObjectName("axisMorphOption");
         button->setCheckable(true);
+        button->setMinimumHeight(kOptionMinHeight);
         if (i == 0) {
             button->setChecked(true);
         }
