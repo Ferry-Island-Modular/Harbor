@@ -56,9 +56,18 @@ Harbor's private-beta Windows packages are not code-signed yet.
 - **Portable:** extract the entire ZIP before opening `Harbor.exe`. Do not move
   the executable away from its adjacent DLL and plug-in folders.
 
-The installer is per-user and can be removed from Windows Settings. It may
-request administrator approval only if Microsoft's Visual C++ runtime needs to
-be installed.
+The installer offers two choices:
+
+- **Anyone who uses this computer** installs to `Program Files` and needs
+  administrator rights.
+- **Only for me** installs to `%LocalAppData%\Programs\Harbor` and does not.
+
+If you are signed in as an administrator, Windows shows a User Account Control
+prompt when the installer starts, before you pick either option. That is
+expected.
+
+Either way Harbor can be removed from Windows Settings. The Microsoft Visual
+C++ runtime ships alongside `Harbor.exe`, so nothing separate needs installing.
 
 #### If Microsoft Defender SmartScreen blocks the private beta
 
@@ -80,6 +89,48 @@ protection globally. If **Run anyway** is unavailable, report the exact warning
 and Windows version; an administrator or organization policy may forbid local
 overrides.
 
+### Linux
+
+Harbor ships as an AppImage for x86-64 and aarch64. Pick the one matching
+`uname -m`.
+
+**Install the graphics libraries first.** AppImages deliberately do not bundle
+OpenGL, because those libraries have to match the driver already on your
+machine, and a stock desktop does not always include all of them:
+
+```bash
+sudo apt install libgl1 libglx0 libopengl0 libegl1
+```
+
+On Fedora these are `mesa-libGL` and `mesa-libEGL`; on Arch they are part of
+`libglvnd`. Without them Harbor exits immediately with
+`error while loading shared libraries: libOpenGL.so.0`.
+
+Then make it executable and run it:
+
+```bash
+chmod +x Harbor-*.AppImage
+./Harbor-*.AppImage
+```
+
+If your distribution has no FUSE 2 runtime, either install it (`libfuse2t64` on
+Ubuntu 24.04) or extract and run directly:
+
+```bash
+./Harbor-*.AppImage --appimage-extract
+./squashfs-root/AppRun
+```
+
+Harbor runs on both Wayland and X11. To force one:
+
+```bash
+QT_QPA_PLATFORM=wayland ./Harbor-*.AppImage
+QT_QPA_PLATFORM=xcb ./Harbor-*.AppImage
+```
+
+Under XWayland on a HiDPI display, scaling follows the usual Qt environment
+variables, for example `QT_SCALE_FACTOR=1`.
+
 ## Verify the download
 
 Each beta release includes `SHA256SUMS.txt`. Verification is optional for the
@@ -95,6 +146,12 @@ Windows PowerShell:
 
 ```powershell
 Get-FileHash .\Harbor-*-windows-x64-setup.exe -Algorithm SHA256
+```
+
+Linux:
+
+```bash
+sha256sum Harbor-*.AppImage
 ```
 
 Compare the displayed hash with the matching entry in `SHA256SUMS.txt`.
@@ -115,7 +172,12 @@ Please note anything surprising, even if Harbor does not crash.
 - [ ] A generated Four Seas bank loads and plays correctly on hardware, if
       hardware is available.
 - [ ] Closing and reopening Harbor preserves appropriate settings.
-- [ ] Windows installer upgrades/reinstalls cleanly and can be uninstalled.
+- [ ] Drag-and-drop of a WAV onto the drop area works, and still works after
+      playing a preview.
+- [ ] No stray console or terminal window opens alongside Harbor (Windows).
+- [ ] Windows installer works in both **Anyone who uses this computer** and
+      **Only for me** modes, upgrades/reinstalls cleanly, and uninstalls.
+- [ ] Linux AppImage starts on a machine that has never run Harbor before.
 
 Do not spend hours completing every combination. A normal session followed by
 the relevant checklist items is more valuable than exhaustive clicking.
