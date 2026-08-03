@@ -124,7 +124,7 @@ the relevant checklist items is more valuable than exhaustive clicking.
 
 Open an issue at:
 
-<https://github.com/jgoney/fim-config-tool/issues/new/choose>
+<https://github.com/Ferry-Island-Modular/Harbor/issues/new/choose>
 
 Include:
 

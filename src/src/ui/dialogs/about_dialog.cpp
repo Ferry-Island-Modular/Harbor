@@ -24,8 +24,8 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {
                           "<p>License: MIT</p>"
                           "<p>Built with Qt, libsamplerate, dr_wav, miniaudio, PFFFT, "
                           "Catch2, and the FourSeas firmware engine.</p>"
-                          "<p><a href='https://github.com/jgoney/fim-config-tool'>"
-                          "github.com/jgoney/fim-config-tool</a></p>")
+                          "<p><a href='https://github.com/Ferry-Island-Modular/Harbor'>"
+                          "github.com/Ferry-Island-Modular/Harbor</a></p>")
                       .arg(HARBOR_VERSION));
     body->setOpenExternalLinks(true);
     body->setWordWrap(true);

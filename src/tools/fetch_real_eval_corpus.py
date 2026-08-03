@@ -16,7 +16,7 @@ from typing import Any
 
 
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = "HarborWavetableEvaluation/0.1 (https://github.com/jgoney/fim-config-tool)"
+USER_AGENT = "HarborWavetableEvaluation/0.1 (https://github.com/Ferry-Island-Modular/Harbor)"
 SOURCES = (
     {
         "slug": "voice_hello_everyone",

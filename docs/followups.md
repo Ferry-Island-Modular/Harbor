@@ -20,7 +20,10 @@ Things noticed during implementation that aren't blocking but should be revisite
 - ~~**`package-macos.sh` contaminates the dev .app bundle.**~~ Fixed: the
   packaging script now runs `macdeployqt` against a temporary staging copy and
   leaves the development bundle untouched.
-- **GitHub URL in About dialog and help.html will change.** Currently hardcoded to `github.com/jgoney/fim-config-tool`. Update when the repo is renamed or moved to an org.
+- ~~**GitHub URL in About dialog and help.html will change.**~~ Done: the
+  About dialog now points at `github.com/Ferry-Island-Modular/Harbor`. Note
+  `resources/help/` never contained a GitHub URL, so only the dialog and the
+  beta-testing docs needed updating.
 
 ## Preview widget
 
