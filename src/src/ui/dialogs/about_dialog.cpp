@@ -21,9 +21,13 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {
     body->setText(QString("<p>Version: %1 (beta)</p>"
                           "<p>Wavetable bank generator for Ferry Island Modular hardware "
                           "and other wavetable synth hosts.</p>"
-                          "<p>License: MIT</p>"
+                          "<p>Copyright &copy; 2026 Goney Global Industries Oy. "
+                          "Released under the MIT License.</p>"
                           "<p>Built with Qt, libsamplerate, dr_wav, miniaudio, PFFFT, "
-                          "Catch2, and the FourSeas firmware engine.</p>"
+                          "and the FourSeas engine. Qt is used under the GNU Lesser "
+                          "General Public License v3; it is unmodified, linked "
+                          "dynamically, and its libraries may be replaced. Full "
+                          "notices are in THIRD-PARTY-NOTICES.md.</p>"
                           "<p><a href='https://github.com/Ferry-Island-Modular/Harbor'>"
                           "github.com/Ferry-Island-Modular/Harbor</a></p>")
                       .arg(HARBOR_VERSION));
