@@ -41,4 +41,9 @@ notarization, and Windows packaging. Beta testers should receive the
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). Copyright Goney Global Industries Oy
+(Ferry Island Modular).
+
+Harbor links against Qt under the LGPL v3 and bundles several other
+components under their own terms. See
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

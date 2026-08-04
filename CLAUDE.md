@@ -12,7 +12,7 @@ Harbor is a C++/Qt desktop application that generates wavetable banks for Ferry 
 - CMake + Ninja
 - libsamplerate, dr_wav, miniaudio, PFFFT (vendored or via FetchContent)
 - Catch2 v3 for tests
-- spdlog for logging
+- No logging library; diagnostics go to stderr via `std::cerr`
 - FourSeas firmware engine vendored as a git submodule under `src/third_party/Four-Seas`
 
 ## Repository Layout

@@ -212,7 +212,7 @@ jobs:
           mkdir -p build/release-assets
           mv Harbor*.AppImage \
             "build/release-assets/Harbor-${RELEASE_TAG}-linux-${arch}.AppImage"
-          cp resources/dist/README-Linux.txt build/release-assets/README.txt
+          cp resources/dist/README-Linux.txt build/release-assets/README-Linux.txt
 
       - name: Verify Wayland plugin was bundled
         if: runner.os == 'Linux'
@@ -297,7 +297,7 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: |
             src/build/release-assets/Harbor-*.AppImage
-            src/build/release-assets/README.txt
+            src/build/release-assets/README-Linux.txt
           if-no-files-found: error
           retention-days: 30
 
