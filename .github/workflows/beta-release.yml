@@ -169,7 +169,10 @@ jobs:
           # linuxdeploy-plugin-qt only deploys platforms/libqxcb.so by default.
           # Without these, Qt logs 'Could not find the Qt platform plugin
           # "wayland"' and silently falls back to XWayland on Wayland desktops.
-          EXTRA_QT_PLUGINS: 'wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration'
+          # EXTRA_QT_PLUGINS was set here for the Wayland plugins and deployed
+          # none of them: the built AppImage contained no wayland-* plugin
+          # directory at all. The explicit copy below is what actually works,
+          # so the variable is gone rather than left looking effective.
         run: |
           set -euo pipefail
           arch="$(uname -m)"
@@ -200,20 +203,34 @@ jobs:
           # though it was found". --deploy-deps-only, added below, is what
           # makes linuxdeploy walk an already-present file's dependencies.
           qt_plugins="${QT_ROOT_DIR:-${Qt6_DIR:-}}/plugins"
-          if [ -d "${qt_plugins}/platforms" ]; then
-            mkdir -p AppDir/usr/plugins/platforms
-            find "${qt_plugins}/platforms" -name 'libqwayland*.so' \
-              -exec cp -v {} AppDir/usr/plugins/platforms/ \; || true
-          else
+          if [ ! -d "${qt_plugins}/platforms" ]; then
             echo "Qt plugins directory not found at ${qt_plugins}" >&2
             exit 1
           fi
 
-          deploy_deps_args=()
-          for plugin in AppDir/usr/plugins/platforms/libqwayland*.so; do
-            [ -e "$plugin" ] || continue
-            deploy_deps_args+=("--deploy-deps-only=$plugin")
+          mkdir -p AppDir/usr/plugins/platforms
+          find "${qt_plugins}/platforms" -name 'libqwayland*.so' \
+            -exec cp -v {} AppDir/usr/plugins/platforms/ \;
+
+          # The platform plugin alone is not enough. At startup Qt Wayland also
+          # loads a shell integration, and without it fails with "No shell
+          # integration named xdg-shell found" and falls back to XCB. The
+          # decoration and graphics-integration plugins live alongside it.
+          for dir in "${qt_plugins}"/wayland-*; do
+            [ -d "$dir" ] || continue
+            cp -rv "$dir" AppDir/usr/plugins/
           done
+
+          if [ ! -d AppDir/usr/plugins/wayland-shell-integration ]; then
+            echo "::error::No wayland-shell-integration plugins found under ${qt_plugins}" >&2
+            exit 1
+          fi
+
+          deploy_deps_args=()
+          while IFS= read -r plugin; do
+            deploy_deps_args+=("--deploy-deps-only=$plugin")
+          done < <(find AppDir/usr/plugins \
+                     \( -name 'libqwayland*.so' -o -path '*/wayland-*/*.so' \) -type f)
 
           ./linuxdeploy-"${arch}".AppImage \
             --appdir AppDir \
@@ -238,19 +255,30 @@ jobs:
             exit 1
           fi
 
-          # Presence alone is not enough. beta.2 shipped the plugin without
-          # libQt6WaylandClient.so.6, so Qt reported "could not load the Qt
-          # platform plugin wayland even though it was found" and fell back to
-          # XWayland. Resolve every dependency the way the AppImage will.
+          # Qt loads a shell integration during Wayland startup. Without it the
+          # platform plugin is present, loads, and still fails with "No shell
+          # integration named xdg-shell found".
+          echo "Shell integrations:"
+          ls -1 AppDir/usr/plugins/wayland-shell-integration/ 2>/dev/null || true
+          if ! ls AppDir/usr/plugins/wayland-shell-integration/ 2>/dev/null | grep -q 'xdg-shell'; then
+            echo "::error::No xdg-shell integration in the AppImage." >&2
+            exit 1
+          fi
+
+          # Presence alone is not enough. beta.2 shipped the platform plugin
+          # without libQt6WaylandClient.so.6, so Qt reported "could not load
+          # ... even though it was found". Resolve every Wayland plugin's
+          # dependencies the way the AppImage will.
           failed=0
-          for plugin in AppDir/usr/plugins/platforms/libqwayland*.so; do
+          while IFS= read -r plugin; do
             missing="$(LD_LIBRARY_PATH=AppDir/usr/lib ldd "$plugin" | grep 'not found' || true)"
             if [ -n "$missing" ]; then
               echo "::error::$(basename "$plugin") has unresolved dependencies:" >&2
               echo "$missing" >&2
               failed=1
             fi
-          done
+          done < <(find AppDir/usr/plugins \
+                     \( -name 'libqwayland*.so' -o -path '*/wayland-*/*.so' \) -type f)
           [ "$failed" -eq 0 ] || exit 1
           echo "All Wayland plugins resolve against the bundled libraries."
 
