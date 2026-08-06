@@ -162,13 +162,36 @@ jobs:
             find "${qt_plugins}/platforms" -name 'libqwayland*.so' \
               -exec cp -v {} AppDir/usr/plugins/platforms/ \; || true
           fi
-          ./linuxdeploy-${ARCH}.AppImage --appdir AppDir --plugin qt --output appimage
+          # Copying the plugin in is not enough: linuxdeploy only resolves
+          # dependencies for files it deploys itself, so a hand-copied plugin
+          # ships without libQt6WaylandClient.so.6 and Qt reports "could not
+          # load ... even though it was found". --deploy-deps-only makes it
+          # walk an already-present file's dependencies.
+          deploy_deps_args=()
+          for plugin in AppDir/usr/plugins/platforms/libqwayland*.so; do
+            [ -e "$plugin" ] || continue
+            deploy_deps_args+=("--deploy-deps-only=$plugin")
+          done
+          ./linuxdeploy-${ARCH}.AppImage --appdir AppDir --plugin qt \
+            "${deploy_deps_args[@]}" --output appimage
+
           echo "Bundled platform plugins:"
           ls -1 AppDir/usr/plugins/platforms/
           if ! ls AppDir/usr/plugins/platforms/ | grep -q '^libqwayland'; then
             echo "::error::No Wayland platform plugin in the AppImage." >&2
             exit 1
           fi
+          failed=0
+          for plugin in AppDir/usr/plugins/platforms/libqwayland*.so; do
+            missing="$(LD_LIBRARY_PATH=AppDir/usr/lib ldd "$plugin" | grep 'not found' || true)"
+            if [ -n "$missing" ]; then
+              echo "::error::$(basename "$plugin") has unresolved dependencies:" >&2
+              echo "$missing" >&2
+              failed=1
+            fi
+          done
+          [ "$failed" -eq 0 ] || exit 1
+          echo "All Wayland plugins resolve against the bundled libraries."
 
       - name: Smoke-test AppImage on a clean system
         if: runner.os == 'Linux'
