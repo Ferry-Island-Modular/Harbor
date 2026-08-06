@@ -193,8 +193,12 @@ jobs:
           EOF
 
           # The Wayland platform plugin lives alongside libqxcb.so but is not
-          # in linuxdeploy's default set, so stage it explicitly and let
-          # linuxdeploy resolve its dependencies from the AppDir.
+          # in linuxdeploy's default set, so stage it explicitly. Copying it in
+          # is not enough on its own: linuxdeploy only resolves dependencies
+          # for files it deploys itself, so a hand-copied plugin ships without
+          # libQt6WaylandClient.so.6 and Qt reports "could not load ... even
+          # though it was found". --deploy-deps-only, added below, is what
+          # makes linuxdeploy walk an already-present file's dependencies.
           qt_plugins="${QT_ROOT_DIR:-${Qt6_DIR:-}}/plugins"
           if [ -d "${qt_plugins}/platforms" ]; then
             mkdir -p AppDir/usr/plugins/platforms
@@ -205,27 +209,50 @@ jobs:
             exit 1
           fi
 
+          deploy_deps_args=()
+          for plugin in AppDir/usr/plugins/platforms/libqwayland*.so; do
+            [ -e "$plugin" ] || continue
+            deploy_deps_args+=("--deploy-deps-only=$plugin")
+          done
+
           ./linuxdeploy-"${arch}".AppImage \
             --appdir AppDir \
             --plugin qt \
+            "${deploy_deps_args[@]}" \
             --output appimage
           mkdir -p build/release-assets
           mv Harbor*.AppImage \
             "build/release-assets/Harbor-${RELEASE_TAG}-linux-${arch}.AppImage"
           cp resources/dist/README-Linux.txt build/release-assets/README-Linux.txt
 
-      - name: Verify Wayland plugin was bundled
+      - name: Verify the Wayland plugin is present and loadable
         if: runner.os == 'Linux'
         working-directory: src
         run: |
           set -euo pipefail
           echo "Bundled platform plugins:"
           ls -1 AppDir/usr/plugins/platforms/
+
           if ! ls AppDir/usr/plugins/platforms/ | grep -q '^libqwayland'; then
             echo "::error::No Wayland platform plugin in the AppImage." >&2
-            echo "Qt will fall back to XWayland on Wayland desktops." >&2
             exit 1
           fi
+
+          # Presence alone is not enough. beta.2 shipped the plugin without
+          # libQt6WaylandClient.so.6, so Qt reported "could not load the Qt
+          # platform plugin wayland even though it was found" and fell back to
+          # XWayland. Resolve every dependency the way the AppImage will.
+          failed=0
+          for plugin in AppDir/usr/plugins/platforms/libqwayland*.so; do
+            missing="$(LD_LIBRARY_PATH=AppDir/usr/lib ldd "$plugin" | grep 'not found' || true)"
+            if [ -n "$missing" ]; then
+              echo "::error::$(basename "$plugin") has unresolved dependencies:" >&2
+              echo "$missing" >&2
+              failed=1
+            fi
+          done
+          [ "$failed" -eq 0 ] || exit 1
+          echo "All Wayland plugins resolve against the bundled libraries."
 
       - name: Smoke-test AppImage on a clean system
         if: runner.os == 'Linux'
