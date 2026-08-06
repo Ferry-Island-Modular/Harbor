@@ -137,9 +137,8 @@ jobs:
         working-directory: src
         env:
           APPIMAGE_EXTRACT_AND_RUN: '1'  # CI runners can lack FUSE
-          # linuxdeploy-plugin-qt deploys only platforms/libqxcb.so by default;
-          # without these the AppImage has no Wayland support at all.
-          EXTRA_QT_PLUGINS: 'wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration'
+          # EXTRA_QT_PLUGINS was set here for the Wayland plugins and deployed
+          # none of them. The explicit copy below is what actually works.
         run: |
           ARCH=$(uname -m)
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage
@@ -157,21 +156,30 @@ jobs:
           Categories=Utility;
           EOF
           qt_plugins="${QT_ROOT_DIR:-${Qt6_DIR:-}}/plugins"
-          if [ -d "${qt_plugins}/platforms" ]; then
-            mkdir -p AppDir/usr/plugins/platforms
-            find "${qt_plugins}/platforms" -name 'libqwayland*.so' \
-              -exec cp -v {} AppDir/usr/plugins/platforms/ \; || true
+          if [ ! -d "${qt_plugins}/platforms" ]; then
+            echo "Qt plugins directory not found at ${qt_plugins}" >&2
+            exit 1
           fi
-          # Copying the plugin in is not enough: linuxdeploy only resolves
-          # dependencies for files it deploys itself, so a hand-copied plugin
-          # ships without libQt6WaylandClient.so.6 and Qt reports "could not
+          mkdir -p AppDir/usr/plugins/platforms
+          find "${qt_plugins}/platforms" -name 'libqwayland*.so' \
+            -exec cp -v {} AppDir/usr/plugins/platforms/ \;
+          # Qt Wayland also loads a shell integration at startup; without it
+          # the platform plugin loads and still fails with "No shell
+          # integration named xdg-shell found".
+          for dir in "${qt_plugins}"/wayland-*; do
+            [ -d "$dir" ] || continue
+            cp -rv "$dir" AppDir/usr/plugins/
+          done
+          # Copying plugins in is not enough: linuxdeploy only resolves
+          # dependencies for files it deploys itself, so hand-copied plugins
+          # ship without libQt6WaylandClient.so.6 and Qt reports "could not
           # load ... even though it was found". --deploy-deps-only makes it
           # walk an already-present file's dependencies.
           deploy_deps_args=()
-          for plugin in AppDir/usr/plugins/platforms/libqwayland*.so; do
-            [ -e "$plugin" ] || continue
+          while IFS= read -r plugin; do
             deploy_deps_args+=("--deploy-deps-only=$plugin")
-          done
+          done < <(find AppDir/usr/plugins \
+                     \( -name 'libqwayland*.so' -o -path '*/wayland-*/*.so' \) -type f)
           ./linuxdeploy-${ARCH}.AppImage --appdir AppDir --plugin qt \
             "${deploy_deps_args[@]}" --output appimage
 
@@ -181,15 +189,22 @@ jobs:
             echo "::error::No Wayland platform plugin in the AppImage." >&2
             exit 1
           fi
+          echo "Shell integrations:"
+          ls -1 AppDir/usr/plugins/wayland-shell-integration/ 2>/dev/null || true
+          if ! ls AppDir/usr/plugins/wayland-shell-integration/ 2>/dev/null | grep -q 'xdg-shell'; then
+            echo "::error::No xdg-shell integration in the AppImage." >&2
+            exit 1
+          fi
           failed=0
-          for plugin in AppDir/usr/plugins/platforms/libqwayland*.so; do
+          while IFS= read -r plugin; do
             missing="$(LD_LIBRARY_PATH=AppDir/usr/lib ldd "$plugin" | grep 'not found' || true)"
             if [ -n "$missing" ]; then
               echo "::error::$(basename "$plugin") has unresolved dependencies:" >&2
               echo "$missing" >&2
               failed=1
             fi
-          done
+          done < <(find AppDir/usr/plugins \
+                     \( -name 'libqwayland*.so' -o -path '*/wayland-*/*.so' \) -type f)
           [ "$failed" -eq 0 ] || exit 1
           echo "All Wayland plugins resolve against the bundled libraries."
 
