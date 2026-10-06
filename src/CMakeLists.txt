@@ -1,4 +1,11 @@
 cmake_minimum_required(VERSION 3.25)
+
+# Minimum macOS version. Must be set before project(); otherwise the build
+# targets the build machine's OS and the app refuses to launch on anything
+# older. 13.0 is the oldest release the Qt 6.10 binaries used for release
+# builds support.
+set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Minimum macOS version")
+
 project(fim-config-tool
     VERSION 0.1.0
     DESCRIPTION "Configuration tool for Ferry Island Modular products"
